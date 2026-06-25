@@ -1,0 +1,30 @@
+/* ============================================================
+   SPACING & SIZING — 4px base grid
+   ============================================================ */
+
+:root {
+  --space-0: 0;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-7: 20px;
+  --space-8: 24px;
+  --space-9: 32px;
+  --space-10: 40px;
+  --space-11: 48px;
+  --space-12: 64px;
+
+  /* Component sizing */
+  --control-h-sm: 28px;
+  --control-h-md: 34px;
+  --control-h-lg: 40px;
+
+  /* Layout */
+  --sidebar-w: 232px;
+  --topbar-h: 56px;
+  --container-max: 1440px;
+  --row-h: 56px;     /* table row (Sovereign default) */
+}

@@ -1,0 +1,75 @@
+/* ============================================================
+   THEMES
+   Default (:root) = "Sovereign" — warm stone, deep forest-green
+   primary, Spectral serif display + Libre Franklin body. This is
+   the committed system (see colors.css / typography.css).
+
+   ".theme-carbon" = the alternate cool/technical direction:
+   slate neutrals, steel-blue primary, IBM Plex, tighter rows.
+   Apply the class to any container to reskin everything beneath it.
+   ============================================================ */
+
+.theme-carbon {
+  /* Cool slate surfaces */
+  --bg-app:         var(--slate-100);
+  --bg-canvas:      var(--slate-50);
+  --surface-card:   var(--white);
+  --surface-sunken: var(--slate-100);
+  --surface-inset:  var(--slate-50);
+  --surface-header: var(--slate-900);
+
+  --text-strong:    var(--slate-900);
+  --text-body:      var(--slate-700);
+  --text-muted:     var(--slate-500);
+  --text-faint:     var(--slate-400);
+  --text-on-dark:   var(--slate-100);
+  --text-link:      var(--blue-600);
+
+  --border-subtle:  var(--slate-200);
+  --border-default: var(--slate-300);
+  --border-strong:  var(--slate-400);
+  --border-focus:   var(--blue-500);
+
+  /* Steel-blue primary */
+  --primary:        var(--blue-600);
+  --primary-hover:  var(--blue-700);
+  --primary-press:  var(--blue-800);
+  --primary-soft:   var(--blue-50);
+  --primary-soft-border: var(--blue-200);
+  --accent:         var(--blue-600);
+  --ring:           color-mix(in srgb, var(--blue-500) 35%, transparent);
+
+  /* Fonts: IBM Plex Sans throughout */
+  --font-display: "IBM Plex Sans", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+
+  /* Tighter geometry */
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --row-h: 52px;
+
+  /* Cooler severity / status backgrounds */
+  --critical-600: #9B1C1C; --critical-500: #C0362C; --critical-100: #FCE6E4;
+  --high-600: #B5470C;     --high-500: #D2691E;     --high-100: #FCE9DA;
+  --medium-700: #87600B;   --medium-600: #A87908;   --medium-500: #C99A1E; --medium-100: #FBF0D2;
+  --low-600: #145A8C;      --low-500: #2A74B8;      --low-100: #DCEAF5;
+
+  --status-open: #64748B;        --status-open-bg: #EEF1F5;
+  --status-progress: #1C5D99;    --status-progress-bg: #E2EDF6;
+  --status-submitted: #0E7490;   --status-submitted-bg: #DCF0F2;
+  --status-approved: #15803D;    --status-approved-bg: #DDF1E3;
+  --status-returned: #B5470C;    --status-returned-bg: #FBE7D7;
+  --status-remediated: #047857;  --status-remediated-bg: #D6F0E6;
+  --status-accepted: #5A5446;    --status-accepted-bg: #ECE8E0;
+
+  /* Coyote mark — steel two-tone for Carbon */
+  --coyote-1:  #2A74B8;
+  --coyote-2:  #0C2E4A;
+  --coyote-d1: #EAF1F8;
+  --coyote-d2: #9FC2DF;
+
+  --scrim:          color-mix(in srgb, #0B1220 50%, transparent);
+  --skeleton-base:  var(--slate-200);
+  --skeleton-sheen: var(--slate-50);
+}

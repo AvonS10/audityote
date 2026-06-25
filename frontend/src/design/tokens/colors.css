@@ -1,0 +1,153 @@
+/* ============================================================
+   COLORS — raw palette + semantic aliases
+   DEFAULT THEME = "Sovereign": warm stone neutrals, a deep
+   forest-green primary, editorial-authority register.
+   The "Carbon" direction (cool slate + steel blue) is available
+   as the ".theme-carbon" scope (see themes.css).
+   ============================================================ */
+
+:root {
+  /* ---- Warm stone neutral ramp (default surfaces/text) ---- */
+  --stone-900: #1C211D;
+  --stone-800: #2A302A;
+  --stone-700: #3A413A;
+  --stone-600: #555E54;
+  --stone-500: #6B7268;
+  --stone-400: #9AA095;
+  --stone-300: #C9C6BA;
+  --stone-250: #D9D4C8;
+  --stone-200: #E7E3DA;
+  --stone-150: #EDEAE2;
+  --stone-100: #F3F1EC;
+  --stone-75:  #F7F5F0;
+  --stone-50:  #FBFAF7;
+
+  /* ---- Forest green ramp (primary / brand) ---- */
+  --forest-900: #102B23;
+  --forest-800: #173A30;
+  --forest-700: #1F4A3D;   /* primary */
+  --forest-600: #2A5E4D;
+  --forest-500: #2F6B57;
+  --forest-300: #8FB3A4;
+  --forest-200: #C7D8CE;
+  --forest-100: #ECF1ED;
+  --forest-ink: #18271F;   /* sidebar / dark header fill */
+
+  /* ---- Cool slate ramp (Carbon alt theme) ---- */
+  --slate-950: #0B1220;
+  --slate-900: #0F172A;
+  --slate-800: #1E293B;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748B;
+  --slate-400: #94A3B8;
+  --slate-300: #CBD5E1;
+  --slate-200: #E2E8F0;
+  --slate-150: #EAEFF5;
+  --slate-100: #F1F5F9;
+  --slate-50:  #F8FAFC;
+  --white:     #FFFFFF;
+
+  /* ---- Steel blue ramp (Carbon alt primary) ---- */
+  --blue-900: #0C2E4A;
+  --blue-800: #103A5E;
+  --blue-700: #15527F;
+  --blue-600: #1C5D99;
+  --blue-500: #2A74B8;
+  --blue-200: #BBD6EC;
+  --blue-100: #DDEBF6;
+  --blue-50:  #EFF6FC;
+
+  /* ---- Severity hues (warmed for the paper ground) ---- */
+  --critical-700: #7A1410;
+  --critical-600: #8F1C16;   /* text/strong */
+  --critical-500: #B23A2E;
+  --critical-100: #F4E0DB;
+  --critical-50:  #FAF0ED;
+
+  --high-700: #7E2C0A;
+  --high-600: #A8470F;       /* burnt orange */
+  --high-500: #C76A28;
+  --high-100: #F6E6D6;
+  --high-50:  #FBF2E9;
+
+  --medium-700: #7A560C;
+  --medium-600: #97700E;     /* amber */
+  --medium-500: #BB9230;
+  --medium-100: #F2E9CE;
+  --medium-50:  #F9F3E2;
+
+  --low-700: #0C3F66;
+  --low-600: #2A5E4D;        /* informational, leans forest */
+  --low-500: #3F7D69;
+  --low-100: #DCE8E1;
+  --low-50:  #EEF3F0;
+
+  /* ---- Status / workflow hues ---- */
+  --status-open:        #6B7268;
+  --status-open-bg:     #ECEAE3;
+  --status-progress:    #2A5E4D;
+  --status-progress-bg: #E2EDE7;
+  --status-submitted:   #0E6E72;
+  --status-submitted-bg:#DBEDED;
+  --status-approved:    #2F7D3E;
+  --status-approved-bg: #E0EFE2;
+  --status-returned:    #A8470F;
+  --status-returned-bg: #F6E5D6;
+  --status-remediated:  #1F6B4C;
+  --status-remediated-bg:#DCEDE3;
+  --status-accepted:    #6B5E45;
+  --status-accepted-bg: #EDE7DA;
+
+  /* ---- Positive / negative utility ---- */
+  --positive-600: #2F7D3E;
+  --positive-100: #E0EFE2;
+  --negative-600: #8F1C16;
+  --negative-100: #F4E0DB;
+
+  /* ============================================================
+     SEMANTIC ALIASES (default = Sovereign).
+     Components reference these, never raw ramp values.
+     ============================================================ */
+
+  --bg-app:        var(--stone-100);
+  --bg-canvas:     var(--stone-50);
+  --surface-card:  var(--white);
+  --surface-sunken:var(--stone-100);
+  --surface-raised:var(--white);
+  --surface-inset: var(--stone-75);
+  --surface-header:var(--forest-ink);
+
+  --text-strong:   var(--stone-900);
+  --text-body:     var(--stone-700);
+  --text-muted:    var(--stone-500);
+  --text-faint:    var(--stone-400);
+  --text-on-dark:  #EEF0EA;
+  --text-on-primary:var(--white);
+  --text-link:     var(--forest-700);
+
+  --border-subtle: var(--stone-200);
+  --border-default: var(--stone-250);
+  --border-strong: var(--stone-300);
+  --border-focus:  var(--forest-500);
+
+  --primary:       var(--forest-700);
+  --primary-hover: var(--forest-800);
+  --primary-press: var(--forest-900);
+  --primary-soft:  var(--forest-100);
+  --primary-soft-border: var(--forest-200);
+
+  --accent:        var(--forest-700);
+  --ring:          color-mix(in srgb, var(--forest-500) 32%, transparent);
+
+  /* ---- Brand: coyote mark two-tone planes ---- */
+  --coyote-1:  #3F7D69;   /* lighter plane (on light bg) */
+  --coyote-2:  #1F4A3D;   /* darker plane (on light bg) */
+  --coyote-d1: #EAEFEA;   /* lighter plane (on dark tile) */
+  --coyote-d2: #8FB3A4;   /* darker plane (on dark tile) */
+
+  /* ---- Feedback / loading ---- */
+  --scrim:          color-mix(in srgb, var(--stone-900) 45%, transparent);
+  --skeleton-base:  var(--stone-150);
+  --skeleton-sheen: var(--stone-50);
+}

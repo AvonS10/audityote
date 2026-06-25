@@ -1,0 +1,51 @@
+/* ============================================================
+   RESPONSIVE LAYER
+   ControlMap is desktop-dense by design. These rules ONLY apply
+   below desktop widths — the desktop design and every density
+   token (--row-h, spacing, type) are unchanged. Overrides use
+   !important to win over the structural inline styles in the kit
+   without rewriting components.
+
+   Breakpoints:  desktop ≥ 1120 · tablet ≤ 1120 · narrow ≤ 720
+   Class hooks:  .cm-sidebar .cm-nav-label .cm-nav-badge .cm-brand-word
+                 .cm-user-block .cm-topbar-search
+                 .cm-findings .cm-findings-scroll
+                 .cm-detail-grid  .cm-review .cm-review-list
+   ============================================================ */
+
+/* ---- Tablet (≤1120): sidebar → icon rail; trim low-priority table columns ---- */
+@media (max-width: 1120px) {
+  .cm-sidebar { width: 60px !important; }
+  .cm-brand-word, .cm-nav-label, .cm-nav-badge, .cm-user-block > div { display: none !important; }
+  .cm-sidebar a { justify-content: center !important; padding-left: 0 !important; padding-right: 0 !important; }
+  .cm-user-block { justify-content: center !important; }
+
+  /* Findings table: drop Frameworks (5) and Updated (7) first */
+  .cm-findings th:nth-child(5), .cm-findings td:nth-child(5),
+  .cm-findings th:nth-child(7), .cm-findings td:nth-child(7) { display: none !important; }
+}
+
+/* ---- Small tablet (≤980): stack two-panel layouts; trim more columns ---- */
+@media (max-width: 980px) {
+  .cm-detail-grid { grid-template-columns: 1fr !important; }
+
+  .cm-review { flex-direction: column !important; height: auto !important; }
+  .cm-review-list { width: 100% !important; max-height: 42vh; border-right: 0 !important; border-bottom: 1px solid var(--border-subtle) !important; }
+
+  /* Findings table: also drop CVSS (3) and Owner (6) — leaves Finding, Severity, Status */
+  .cm-findings th:nth-child(3), .cm-findings td:nth-child(3),
+  .cm-findings th:nth-child(6), .cm-findings td:nth-child(6) { display: none !important; }
+}
+
+/* ---- Narrow (≤720): findings table → stacked card list; compact chrome ---- */
+@media (max-width: 720px) {
+  .cm-topbar-search { display: none !important; }
+
+  .cm-findings-scroll { overflow-x: visible !important; }
+  .cm-findings { min-width: 0 !important; }
+  .cm-findings thead { display: none !important; }
+  .cm-findings, .cm-findings tbody, .cm-findings tr, .cm-findings td { display: block !important; }
+  .cm-findings tr { padding: 6px 2px 10px !important; }
+  .cm-findings td { height: auto !important; padding: 3px 16px !important; border: 0 !important; }
+  .cm-findings td:first-child { padding-top: 11px !important; }
+}

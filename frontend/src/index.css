@@ -1,0 +1,19 @@
+/* ControlMap design tokens first (fonts + CSS variables), then Tailwind layers.
+   The Tailwind token names (bg-primary, text-strong, …) resolve to these var(--…) values. */
+@import './design/styles.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App base: reset page margins; the design system's .cm-root carries themed typography. */
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  background: var(--bg-app);
+}
