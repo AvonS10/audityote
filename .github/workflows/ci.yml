@@ -44,6 +44,20 @@ jobs:
     needs: detect
     if: ${{ needs.detect.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
+    # Repository slice tests (@DataJpaTest) run against a real Postgres + Flyway. Reachable on
+    # localhost for this non-container job. Credentials are throwaway CI values, not secrets.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: controlmap
+          POSTGRES_USER: controlmap
+          POSTGRES_PASSWORD: controlmap
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U controlmap -d controlmap"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -54,6 +68,10 @@ jobs:
       - name: Build & test
         working-directory: backend
         # AI-suggestion tests are mocked — CI needs no API key and makes no live calls.
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/controlmap
+          SPRING_DATASOURCE_USERNAME: controlmap
+          SPRING_DATASOURCE_PASSWORD: controlmap
         run: mvn -B verify
 
   frontend:
