@@ -29,6 +29,15 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+# Demo-user seeding (DataSeeder). Real values come from the gitignored .env; blank = not seeded.
+seed:
+  analyst:
+    email: ${SEED_ANALYST_EMAIL:}
+    password: ${SEED_ANALYST_PASSWORD:}
+  reviewer:
+    email: ${SEED_REVIEWER_EMAIL:}
+    password: ${SEED_REVIEWER_PASSWORD:}
+
 server:
   port: 8080
 
