@@ -20,6 +20,9 @@ public interface FindingRepository extends JpaRepository<Finding, Long> {
 
     boolean existsByReference(String reference);
 
+    /** Highest existing reference for a year prefix (e.g. "CM-2026-") — drives reference generation. */
+    Optional<Finding> findFirstByReferenceStartingWithOrderByReferenceDesc(String prefix);
+
     /**
      * Paged findings with optional filters (null = ignore). The owner is fetch-joined to avoid an
      * N+1; the framework filter matches findings having a mapped control in that framework.

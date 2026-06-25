@@ -1,16 +1,25 @@
 package io.muzoo.ssc.controlmap.web;
 
+import io.muzoo.ssc.controlmap.domain.Asset;
 import io.muzoo.ssc.controlmap.domain.Finding;
 import io.muzoo.ssc.controlmap.domain.FindingStatus;
 import io.muzoo.ssc.controlmap.domain.Severity;
+import io.muzoo.ssc.controlmap.domain.User;
 import io.muzoo.ssc.controlmap.repository.FindingControlMappingRepository;
 import io.muzoo.ssc.controlmap.repository.FindingRepository;
+import io.muzoo.ssc.controlmap.repository.UserRepository;
+import io.muzoo.ssc.controlmap.web.dto.AssetRequest;
 import io.muzoo.ssc.controlmap.web.dto.ControlRef;
+import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
+import io.muzoo.ssc.controlmap.web.dto.FindingRequest;
 import io.muzoo.ssc.controlmap.web.dto.FindingSummary;
 import io.muzoo.ssc.controlmap.web.dto.PagedResponse;
+import java.math.BigDecimal;
+import java.time.Year;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,18 +28,25 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Read queries for findings: the filtered, paged dashboard list. */
+/** Read and write operations for findings: the dashboard list, detail, and create/edit/delete. */
 @Service
 @Transactional(readOnly = true)
 public class FindingService {
 
+    /** Findings may be edited/deleted only while the owning analyst is actively working them (§8). */
+    private static final Set<FindingStatus> EDITABLE =
+            Set.of(FindingStatus.OPEN, FindingStatus.IN_PROGRESS, FindingStatus.RETURNED);
+
     private final FindingRepository findings;
     private final FindingControlMappingRepository mappings;
+    private final UserRepository users;
     private final FindingMapper mapper;
 
-    public FindingService(FindingRepository findings, FindingControlMappingRepository mappings, FindingMapper mapper) {
+    public FindingService(FindingRepository findings, FindingControlMappingRepository mappings,
+                          UserRepository users, FindingMapper mapper) {
         this.findings = findings;
         this.mappings = mappings;
+        this.users = users;
         this.mapper = mapper;
     }
 
@@ -59,6 +75,119 @@ public class FindingService {
                         Collectors.mapping(
                                 m -> new ControlRef(m.getControl().getFramework().getSlug(), m.getControl().getCode()),
                                 Collectors.toList())));
+    }
+
+    public FindingDetail get(Long id) {
+        return mapper.toDetail(requireFinding(id), mappedControls(id));
+    }
+
+    @Transactional
+    public FindingDetail create(FindingRequest request, String currentUserEmail) {
+        User owner = currentUser(currentUserEmail);
+        Finding finding = new Finding(nextReference(), request.title(), request.description(),
+                resolveSeverity(request.severity(), request.cvss()), request.cvss(), owner, toAsset(request.asset()));
+        Finding saved = findings.save(finding);
+        return mapper.toDetail(saved, List.of());
+    }
+
+    @Transactional
+    public FindingDetail update(Long id, FindingRequest request, String currentUserEmail) {
+        Finding finding = requireFinding(id);
+        requireOwner(finding, currentUserEmail);
+        requireEditable(finding);
+
+        finding.setTitle(request.title());
+        finding.setDescription(request.description());
+        finding.setSeverity(resolveSeverity(request.severity(), request.cvss()));
+        finding.setCvssScore(request.cvss());
+        finding.setAsset(toAsset(request.asset()));
+        // §8: the first edit of an OPEN finding moves it to IN_PROGRESS.
+        if (finding.getStatus() == FindingStatus.OPEN) {
+            finding.setStatus(FindingStatus.IN_PROGRESS);
+        }
+        Finding saved = findings.save(finding);
+        return mapper.toDetail(saved, mappedControls(id));
+    }
+
+    @Transactional
+    public void delete(Long id, String currentUserEmail) {
+        Finding finding = requireFinding(id);
+        requireOwner(finding, currentUserEmail);
+        requireEditable(finding);
+        findings.delete(finding); // child mappings/audit rows cascade at the DB (ON DELETE CASCADE)
+    }
+
+    private Finding requireFinding(Long id) {
+        return findings.findById(id).orElseThrow(() -> new NotFoundException("Finding not found: " + id));
+    }
+
+    private void requireOwner(Finding finding, String email) {
+        if (!finding.getOwner().getEmail().equalsIgnoreCase(email)) {
+            throw new ForbiddenException("Only the owning analyst can modify this finding.");
+        }
+    }
+
+    private void requireEditable(Finding finding) {
+        if (!EDITABLE.contains(finding.getStatus())) {
+            throw new ConflictException(
+                    "This finding cannot be edited in its current state (" + FindingMapper.statusToWire(finding.getStatus()) + ").");
+        }
+    }
+
+    private User currentUser(String email) {
+        return users.findByEmail(email).orElseThrow(() -> new ForbiddenException("Authenticated user not found."));
+    }
+
+    private List<FindingDetail.MappedControl> mappedControls(Long findingId) {
+        return mappings.findWithControlByFindingIds(List.of(findingId)).stream()
+                .map(m -> new FindingDetail.MappedControl(
+                        m.getControl().getId(), m.getControl().getFramework().getSlug(),
+                        m.getControl().getCode(), m.getControl().getTitle()))
+                .toList();
+    }
+
+    /** Severity is derived from CVSS when present (CVSS 3.x bands, §16 #6); otherwise it is required. */
+    private Severity resolveSeverity(String severityWire, BigDecimal cvss) {
+        if (cvss != null) {
+            return bandFromCvss(cvss);
+        }
+        if (isBlank(severityWire)) {
+            throw new BadRequestException("Severity is required when no CVSS score is provided.");
+        }
+        try {
+            return FindingMapper.severityFromWire(severityWire);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid severity: " + severityWire);
+        }
+    }
+
+    private static Severity bandFromCvss(BigDecimal cvss) {
+        double v = cvss.doubleValue();
+        if (v >= 9.0) return Severity.CRITICAL;
+        if (v >= 7.0) return Severity.HIGH;
+        if (v >= 4.0) return Severity.MEDIUM;
+        return Severity.LOW;
+    }
+
+    private static Asset toAsset(AssetRequest a) {
+        return new Asset(a.name(), blankToNull(a.env()), blankToNull(a.component()), blankToNull(a.url()));
+    }
+
+    /** Next human reference for the current year: CM-YYYY-NNNN (zero-padded, increasing). */
+    private String nextReference() {
+        String prefix = "CM-" + Year.now().getValue() + "-";
+        int next = findings.findFirstByReferenceStartingWithOrderByReferenceDesc(prefix)
+                .map(f -> sequenceOf(f.getReference()) + 1)
+                .orElse(1);
+        return String.format("%s%04d", prefix, next);
+    }
+
+    private static int sequenceOf(String reference) {
+        try {
+            return Integer.parseInt(reference.substring(reference.lastIndexOf('-') + 1));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private FindingStatus parseStatus(String value) {

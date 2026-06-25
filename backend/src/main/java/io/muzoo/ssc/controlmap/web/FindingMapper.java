@@ -1,9 +1,11 @@
 package io.muzoo.ssc.controlmap.web;
 
+import io.muzoo.ssc.controlmap.domain.Asset;
 import io.muzoo.ssc.controlmap.domain.Finding;
 import io.muzoo.ssc.controlmap.domain.FindingStatus;
 import io.muzoo.ssc.controlmap.domain.Severity;
 import io.muzoo.ssc.controlmap.web.dto.ControlRef;
+import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
 import io.muzoo.ssc.controlmap.web.dto.FindingSummary;
 import java.util.List;
 import java.util.Locale;
@@ -29,6 +31,23 @@ public class FindingMapper {
                 controls,
                 finding.getOwner().getName(),
                 finding.getUpdatedAt());
+    }
+
+    public FindingDetail toDetail(Finding finding, List<FindingDetail.MappedControl> controls) {
+        Asset asset = finding.getAsset();
+        return new FindingDetail(
+                finding.getId(),
+                finding.getReference(),
+                finding.getTitle(),
+                finding.getDescription(),
+                severityToWire(finding.getSeverity()),
+                finding.getCvssScore(),
+                statusToWire(finding.getStatus()),
+                asset == null ? null : new FindingDetail.AssetDto(asset.getName(), asset.getEnv(), asset.getComponent(), asset.getUrl()),
+                finding.getOwner().getName(),
+                finding.getCreatedAt(),
+                finding.getUpdatedAt(),
+                controls);
     }
 
     // ---- casing translation (enum <-> wire) ----
