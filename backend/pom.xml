@@ -21,6 +21,9 @@
     <properties>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Override Spring Boot's managed pg driver (42.7.5) to patch HIGH CVEs
+             CVE-2025-49146 (fixed 42.7.7) and CVE-2026-42198 (fixed 42.7.11). -->
+        <postgresql.version>42.7.11</postgresql.version>
     </properties>
 
     <dependencies>
