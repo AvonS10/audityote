@@ -1,13 +1,18 @@
 package io.muzoo.ssc.controlmap.web;
 
 import io.muzoo.ssc.controlmap.domain.Asset;
+import io.muzoo.ssc.controlmap.domain.Control;
 import io.muzoo.ssc.controlmap.domain.Finding;
+import io.muzoo.ssc.controlmap.domain.FindingControlMapping;
 import io.muzoo.ssc.controlmap.domain.FindingStatus;
+import io.muzoo.ssc.controlmap.domain.MappingSource;
 import io.muzoo.ssc.controlmap.domain.Severity;
 import io.muzoo.ssc.controlmap.domain.User;
+import io.muzoo.ssc.controlmap.repository.ControlRepository;
 import io.muzoo.ssc.controlmap.repository.FindingControlMappingRepository;
 import io.muzoo.ssc.controlmap.repository.FindingRepository;
 import io.muzoo.ssc.controlmap.repository.UserRepository;
+import io.muzoo.ssc.controlmap.web.dto.AddMappingRequest;
 import io.muzoo.ssc.controlmap.web.dto.AssetRequest;
 import io.muzoo.ssc.controlmap.web.dto.ControlRef;
 import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
@@ -39,13 +44,15 @@ public class FindingService {
 
     private final FindingRepository findings;
     private final FindingControlMappingRepository mappings;
+    private final ControlRepository controls;
     private final UserRepository users;
     private final FindingMapper mapper;
 
     public FindingService(FindingRepository findings, FindingControlMappingRepository mappings,
-                          UserRepository users, FindingMapper mapper) {
+                          ControlRepository controls, UserRepository users, FindingMapper mapper) {
         this.findings = findings;
         this.mappings = mappings;
+        this.controls = controls;
         this.users = users;
         this.mapper = mapper;
     }
@@ -115,6 +122,41 @@ public class FindingService {
         requireOwner(finding, currentUserEmail);
         requireEditable(finding);
         findings.delete(finding); // child mappings/audit rows cascade at the DB (ON DELETE CASCADE)
+    }
+
+    @Transactional
+    public FindingDetail addControl(Long findingId, AddMappingRequest request, String currentUserEmail) {
+        Finding finding = requireFinding(findingId);
+        requireOwner(finding, currentUserEmail);
+        requireEditable(finding);
+
+        Control control = controls.findById(request.controlId())
+                .orElseThrow(() -> new NotFoundException("Control not found: " + request.controlId()));
+        if (mappings.existsByFinding_IdAndControl_Id(findingId, control.getId())) {
+            throw new ConflictException("That control is already mapped to this finding.");
+        }
+
+        FindingControlMapping mapping = new FindingControlMapping(finding, control);
+        if (request.source() != null && MappingSource.AI_SUGGESTED.name().equalsIgnoreCase(request.source())) {
+            mapping.setSource(MappingSource.AI_SUGGESTED);
+            mapping.setAiConfidence(request.aiConfidence());
+            mapping.setAiRationale(request.aiRationale());
+            mapping.setAiModel(request.aiModel());
+        }
+        mappings.save(mapping);
+        return mapper.toDetail(finding, mappedControls(findingId));
+    }
+
+    @Transactional
+    public FindingDetail removeControl(Long findingId, Long controlId, String currentUserEmail) {
+        Finding finding = requireFinding(findingId);
+        requireOwner(finding, currentUserEmail);
+        requireEditable(finding);
+
+        FindingControlMapping mapping = mappings.findByFinding_IdAndControl_Id(findingId, controlId)
+                .orElseThrow(() -> new NotFoundException("That control is not mapped to this finding."));
+        mappings.delete(mapping);
+        return mapper.toDetail(finding, mappedControls(findingId));
     }
 
     private Finding requireFinding(Long id) {

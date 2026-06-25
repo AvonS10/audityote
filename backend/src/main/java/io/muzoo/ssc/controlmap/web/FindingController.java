@@ -1,5 +1,6 @@
 package io.muzoo.ssc.controlmap.web;
 
+import io.muzoo.ssc.controlmap.web.dto.AddMappingRequest;
 import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
 import io.muzoo.ssc.controlmap.web.dto.FindingRequest;
 import io.muzoo.ssc.controlmap.web.dto.FindingSummary;
@@ -63,5 +64,15 @@ public class FindingController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, Principal principal) {
         findingService.delete(id, principal.getName());
+    }
+
+    @PostMapping("/findings/{id}/controls")
+    public FindingDetail addControl(@PathVariable Long id, @Valid @RequestBody AddMappingRequest request, Principal principal) {
+        return findingService.addControl(id, request, principal.getName());
+    }
+
+    @DeleteMapping("/findings/{id}/controls/{controlId}")
+    public FindingDetail removeControl(@PathVariable Long id, @PathVariable Long controlId, Principal principal) {
+        return findingService.removeControl(id, controlId, principal.getName());
     }
 }
