@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { AppShell } from './components/app/AppShell'
+import { ControlCatalog } from './pages/ControlCatalog'
 import { Login } from './pages/Login'
 import { Placeholder } from './pages/Placeholder'
 
@@ -21,7 +22,7 @@ function App() {
         }
       >
         <Route path="/" element={<Placeholder title="Dashboard" note="The findings dashboard arrives in build increment #10." />} />
-        <Route path="/catalog" element={<Placeholder title="Control Catalog" note="The read-only control catalog arrives in build increment #9." />} />
+        <Route path="/catalog" element={<ControlCatalog />} />
         <Route path="/coverage" element={<Placeholder title="Control Coverage" note="Coverage and gaps arrive in build increment #13." />} />
         <Route path="/posture" element={<Placeholder title="Risk Posture" note="The risk posture dashboard arrives in build increment #19." />} />
         <Route path="/reviews" element={<Placeholder title="Review Queue" note="The reviewer sign-off queue arrives in build increment #17." />} />

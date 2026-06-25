@@ -51,6 +51,15 @@ if (EMAIL && PASSWORD) {
   await page.click('button[title="Switch visual direction"]')
   await page.waitForTimeout(200)
   await shot('app-carbon')
+
+  // Control Catalog screen
+  await page.goto(`${BASE}/catalog`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(250)
+  await shot('catalog')
+  // Search filter
+  await page.fill('input[type="search"]', 'crypto')
+  await page.waitForTimeout(200)
+  await shot('catalog-search')
 } else {
   console.log('SEED_ANALYST_* not set — skipping authenticated screenshots')
 }
