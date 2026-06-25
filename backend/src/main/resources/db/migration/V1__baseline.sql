@@ -1,0 +1,8 @@
+-- V1 — baseline migration.
+--
+-- Establishes the Flyway migration history (flyway_schema_history) and a clean starting point.
+-- The schema itself is intentionally empty here: the domain tables (User, Framework, Control,
+-- Finding, FindingControlMapping, AuditLog — PLAN §3) are introduced in chunk #5 as V2 onward,
+-- so each entity slice lands as its own reviewable migration.
+--
+-- Intentionally no DDL in this baseline.
