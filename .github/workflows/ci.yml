@@ -1,0 +1,92 @@
+# ============================================================
+# ControlMap — CI / DevSecOps pipeline.
+#
+# Designed to be GREEN from day one and light up progressively:
+#  - the backend / frontend jobs only run once backend/pom.xml or
+#    frontend/package.json exist (file-existence guards).
+#  - Semgrep (SAST) and Trivy (deps + secrets) run on every push/PR and are
+#    BLOCKING — they fail the build on findings. Tune severity/rulesets below.
+#
+# Finalize the backend test step once a backend exists (see the backend job below).
+# ============================================================
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend — Maven build & tests
+    if: ${{ hashFiles('backend/pom.xml') != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Build & test
+        working-directory: backend
+        # AI-suggestion tests are mocked — CI needs no API key and makes no live calls.
+        run: mvn -B verify
+
+  frontend:
+    name: Frontend — lint, build, test
+    if: ${{ hashFiles('frontend/package.json') != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint --if-present
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+      - name: Test
+        working-directory: frontend
+        run: npm test --if-present
+
+  semgrep:
+    name: Semgrep — SAST
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      # --error makes findings fail the build (blocking). Adjust the rulesets as needed.
+      - run: semgrep scan --config p/default --config p/owasp-top-ten --config p/secrets --error
+
+  trivy:
+    name: Trivy — dependencies & secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Filesystem scan: dependency CVEs, leaked secrets, IaC misconfig.
+      # Pin/bump this action tag as you like.
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      # Later (once images exist), add a container-image scan of the built backend/frontend.

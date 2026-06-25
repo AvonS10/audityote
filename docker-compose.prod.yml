@@ -1,0 +1,44 @@
+# ============================================================
+# ControlMap — PRODUCTION override (Week 4: server + domain + TLS).
+# Template — activate when deploying. Requires APP_DOMAIN and ACME_EMAIL in .env
+# and the Caddyfile in the repo root.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile app up -d --build
+#
+# Caddy terminates TLS for your domain, serves the static frontend, and proxies
+# /api to the backend. Postgres and the app services are NOT exposed publicly.
+# ============================================================
+
+services:
+  db:
+    ports: []                  # do not expose Postgres on the public host
+
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports: []                  # only reachable via the internal compose network
+
+  frontend:
+    ports: []                  # only reachable via Caddy
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: controlmap-caddy
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

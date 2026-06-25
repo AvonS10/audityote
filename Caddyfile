@@ -1,0 +1,22 @@
+# ControlMap — reverse proxy + automatic HTTPS (template, Week 4).
+# APP_DOMAIN and ACME_EMAIL come from .env via docker-compose.prod.yml.
+# Caddy automatically provisions and renews a Let's Encrypt certificate.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	# API → Spring Boot
+	@api path /api/*
+	handle @api {
+		reverse_proxy backend:8080
+	}
+
+	# Everything else → static SPA (nginx)
+	handle {
+		reverse_proxy frontend:80
+	}
+}

@@ -1,0 +1,70 @@
+# ============================================================
+# ControlMap — local development stack.
+#
+#   docker compose up -d db          # start ONLY Postgres (use this from day one)
+#   docker compose --profile app up --build   # full stack, once backend/ & frontend/
+#                                              # have Dockerfiles (backlog #3 / #8)
+#
+# The `db` service runs immediately. `backend` and `frontend` are under the
+# "app" profile, so a plain `docker compose up` won't try to build code that
+# doesn't exist yet.
+# ============================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: controlmap-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    profiles: ["app"]
+    build: ./backend                 # needs backend/Dockerfile (add it when building the backend)
+    container_name: controlmap-backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      # In-container DB host is `db`, not localhost:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_SESSION_SECRET: ${APP_SESSION_SECRET}
+      APP_CORS_ORIGINS: ${APP_CORS_ORIGINS}
+      SEED_ANALYST_EMAIL: ${SEED_ANALYST_EMAIL}
+      SEED_ANALYST_PASSWORD: ${SEED_ANALYST_PASSWORD}
+      SEED_REVIEWER_EMAIL: ${SEED_REVIEWER_EMAIL}
+      SEED_REVIEWER_PASSWORD: ${SEED_REVIEWER_PASSWORD}
+      # AI-assisted control mapping (stretch — off by default)
+      AI_SUGGESTIONS_ENABLED: ${AI_SUGGESTIONS_ENABLED:-false}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-4-5-20251001}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  frontend:
+    profiles: ["app"]
+    build: ./frontend                # needs frontend/Dockerfile (add it when building the frontend)
+    container_name: controlmap-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"                    # static build served by nginx on :80
+
+volumes:
+  pgdata:
