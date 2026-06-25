@@ -25,6 +25,16 @@ export class ApiError extends Error {
   }
 }
 
+let unauthorizedHandler: (() => void) | null = null
+
+/**
+ * Registers a handler invoked when an *authenticated* request unexpectedly gets a 401 (session
+ * expired). Not fired for the /auth/me probe or /auth/login, where a 401 is an expected outcome.
+ */
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler
+}
+
 function readCookie(name: string): string | null {
   for (const part of document.cookie.split('; ')) {
     const eq = part.indexOf('=')
@@ -61,7 +71,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   const text = await res.text()
   const data = text ? JSON.parse(text) : undefined
-  if (!res.ok) throw new ApiError(res.status, (data as ApiErrorBody) ?? null)
+  if (!res.ok) {
+    if (res.status === 401 && path !== '/auth/me' && path !== '/auth/login') {
+      unauthorizedHandler?.()
+    }
+    throw new ApiError(res.status, (data as ApiErrorBody) ?? null)
+  }
   return data as T
 }
 

@@ -8,7 +8,7 @@ import { useAuth } from './AuthContext'
  * convenience only — the real authorization is enforced server-side by Spring Security.
  */
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { status } = useAuth()
+  const { status, expired } = useAuth()
   const location = useLocation()
 
   if (status === 'loading') {
@@ -19,7 +19,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     )
   }
   if (status === 'anonymous') {
-    return <Navigate to="/login" replace state={{ from: location }} />
+    return <Navigate to={expired ? '/login?reason=expired' : '/login'} replace state={{ from: location }} />
   }
   return <>{children}</>
 }

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import { api } from '../lib/api'
+import { api, setUnauthorizedHandler } from '../lib/api'
 
 export interface User {
   id: number
@@ -14,6 +14,8 @@ type Status = 'loading' | 'authenticated' | 'anonymous'
 interface AuthContextValue {
   user: User | null
   status: Status
+  /** True when the session expired mid-use (a 401 on an authenticated request) → ?reason=expired. */
+  expired: boolean
   login: (email: string, password: string) => Promise<User>
   logout: () => Promise<void>
 }
@@ -22,11 +24,13 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 /**
  * Holds the signed-in user. On mount it probes GET /api/auth/me (which also primes the CSRF
- * cookie); a 401 simply means anonymous. login/logout update the state after the server call.
+ * cookie); a 401 simply means anonymous. A later 401 on an authenticated call flips `expired` so
+ * the SPA can redirect to login?reason=expired. login/logout update the state after the server call.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [status, setStatus] = useState<Status>('loading')
+  const [expired, setExpired] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -39,10 +43,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setUser(null)
+      setStatus('anonymous')
+      setExpired(true)
+    })
+    return () => setUnauthorizedHandler(null)
+  }, [])
+
   const login = useCallback(async (email: string, password: string) => {
     const u = await api.post<User>('/auth/login', { email, password })
     setUser(u)
     setStatus('authenticated')
+    setExpired(false)
     return u
   }, [])
 
@@ -55,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  return <AuthContext.Provider value={{ user, status, login, logout }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, status, expired, login, logout }}>{children}</AuthContext.Provider>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

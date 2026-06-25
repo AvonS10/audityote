@@ -29,7 +29,7 @@ await shot('login')
 await page.goto(`${BASE}/login?reason=expired`, { waitUntil: 'networkidle' })
 await shot('login-expired')
 
-// Authenticated landing — log in through the UI
+// Authenticated screens — log in through the UI, then capture the AppShell variants
 if (EMAIL && PASSWORD) {
   await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
   await page.fill('input[type="email"]', EMAIL)
@@ -37,7 +37,20 @@ if (EMAIL && PASSWORD) {
   await page.click('button[type="submit"]')
   await page.waitForURL(`${BASE}/`, { timeout: 10000 })
   await page.waitForLoadState('networkidle')
-  await shot('home')
+  await shot('app-dashboard')
+
+  // Account menu open
+  await page.click('button[title="Account"]')
+  await page.waitForTimeout(150)
+  await shot('app-account-menu')
+  await page.keyboard.press('Escape').catch(() => {})
+  await page.mouse.click(700, 400)
+  await page.waitForTimeout(150)
+
+  // Carbon theme
+  await page.click('button[title="Switch visual direction"]')
+  await page.waitForTimeout(200)
+  await shot('app-carbon')
 } else {
   console.log('SEED_ANALYST_* not set — skipping authenticated screenshots')
 }
