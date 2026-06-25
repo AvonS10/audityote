@@ -2,12 +2,12 @@
 # ControlMap — CI / DevSecOps pipeline.
 #
 # Designed to be GREEN from day one and light up progressively:
-#  - the backend / frontend jobs only run once backend/pom.xml or
-#    frontend/package.json exist (file-existence guards).
+#  - a `detect` job checks which parts of the monorepo exist; the backend /
+#    frontend jobs only run once backend/pom.xml or frontend/package.json exist.
+#    (hashFiles() is NOT allowed in a job-level `if`, so the existence check
+#    lives in `detect` and the other jobs gate on its outputs.)
 #  - Semgrep (SAST) and Trivy (deps + secrets) run on every push/PR and are
 #    BLOCKING — they fail the build on findings. Tune severity/rulesets below.
-#
-# Finalize the backend test step once a backend exists (see the backend job below).
 # ============================================================
 name: CI
 
@@ -24,9 +24,25 @@ permissions:
   contents: read
 
 jobs:
+  # Detect which parts of the monorepo are present yet, so the language jobs
+  # activate only when there is something to build (keeps CI green pre-code).
+  detect:
+    name: Detect components
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.check.outputs.backend }}
+      frontend: ${{ steps.check.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          echo "backend=$([ -f backend/pom.xml ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "frontend=$([ -f frontend/package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
   backend:
     name: Backend — Maven build & tests
-    if: ${{ hashFiles('backend/pom.xml') != '' }}
+    needs: detect
+    if: ${{ needs.detect.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +58,8 @@ jobs:
 
   frontend:
     name: Frontend — lint, build, test
-    if: ${{ hashFiles('frontend/package.json') != '' }}
+    needs: detect
+    if: ${{ needs.detect.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
