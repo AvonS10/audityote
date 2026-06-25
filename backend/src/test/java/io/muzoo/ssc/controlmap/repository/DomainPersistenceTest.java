@@ -39,13 +39,16 @@ class DomainPersistenceTest {
 
     @Test
     void persistsAndQueriesTheFullGraph() {
-        User analyst = users.save(new User("analyst@controlmap.local", "$2a$bcrypt-hash", Role.ANALYST));
-        Framework iso = frameworks.save(new Framework("ISO/IEC 27001", "2022"));
+        // Test-only data (unique names/email/reference) so it never collides with the seeded catalog
+        // — the @SpringBootTest boot in this suite seeds the real frameworks into the same DB.
+        User analyst = users.save(
+                new User("graph-test@controlmap.test", "Graph Tester", "$2a$bcrypt-hash", Role.ANALYST));
+        Framework iso = frameworks.save(new Framework("ControlMap Test Framework", "t1"));
         Control secureCoding = controls.save(
-                new Control(iso, "A.8.28", "Secure coding", "Apply secure coding principles."));
+                new Control(iso, "T.1", "Test control", "A control used only by this test."));
 
         Finding finding = findings.save(new Finding(
-                "CM-2026-0001", "SQL injection in login", "Unparameterised query.",
+                "CM-TEST-0001", "SQL injection in login", "Unparameterised query.",
                 Severity.HIGH, new BigDecimal("7.5"), analyst,
                 new Asset("auth-service", "prod", "LoginController", "https://app.example/login")));
 
@@ -53,14 +56,14 @@ class DomainPersistenceTest {
         auditLogs.save(new AuditLog(finding, analyst, "CREATE", null, FindingStatus.OPEN, null));
 
         // Custom finders resolve.
-        assertThat(users.findByEmail("analyst@controlmap.local")).get()
+        assertThat(users.findByEmail("graph-test@controlmap.test")).get()
                 .extracting(User::getRole).isEqualTo(Role.ANALYST);
-        assertThat(frameworks.findByNameAndVersion("ISO/IEC 27001", "2022")).isPresent();
-        assertThat(controls.findByFramework_IdAndCode(iso.getId(), "A.8.28")).isPresent();
+        assertThat(frameworks.findByNameAndVersion("ControlMap Test Framework", "t1")).isPresent();
+        assertThat(controls.findByFramework_IdAndCode(iso.getId(), "T.1")).isPresent();
         assertThat(controls.findByFramework_Id(iso.getId())).hasSize(1);
 
         // Finding round-trips: embedded asset, CVSS, default status, lifecycle timestamps.
-        Finding reloaded = findings.findByReference("CM-2026-0001").orElseThrow();
+        Finding reloaded = findings.findByReference("CM-TEST-0001").orElseThrow();
         assertThat(reloaded.getStatus()).isEqualTo(FindingStatus.OPEN);
         assertThat(reloaded.getCvssScore()).isEqualByComparingTo("7.5");
         assertThat(reloaded.getAsset().getName()).isEqualTo("auth-service");

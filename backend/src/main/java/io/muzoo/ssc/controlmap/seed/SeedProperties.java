@@ -29,10 +29,19 @@ public class SeedProperties {
         this.reviewer = reviewer;
     }
 
-    /** A single seed account: email + raw password (hashed before persistence). */
+    /** A single seed account: display name + email + raw password (hashed before persistence). */
     public static class Account {
+        private String name;
         private String email;
         private String password;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
 
         public String getEmail() {
             return email;

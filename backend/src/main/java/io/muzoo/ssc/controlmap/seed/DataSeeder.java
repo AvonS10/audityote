@@ -146,9 +146,15 @@ public class DataSeeder implements ApplicationRunner {
         if (users.existsByEmail(account.getEmail())) {
             return 0;
         }
-        users.save(new User(account.getEmail(), passwordEncoder.encode(account.getPassword()), role));
+        String name = isBlank(account.getName()) ? defaultName(role) : account.getName();
+        users.save(new User(account.getEmail(), name,
+                passwordEncoder.encode(account.getPassword()), role));
         log.info("Seeded demo {} user.", role);
         return 1;
+    }
+
+    private static String defaultName(Role role) {
+        return role == Role.REVIEWER ? "Demo Reviewer" : "Demo Analyst";
     }
 
     private static boolean isBlank(String value) {

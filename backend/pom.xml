@@ -62,18 +62,22 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- BCrypt password hashing (PasswordEncoder). Crypto only — the full Spring Security web
-             stack (SecurityFilterChain, login) arrives in chunk #7; this avoids locking down the
-             API prematurely while letting the seeder hash demo-user passwords. -->
+        <!-- Spring Security: authentication, session management, CSRF, role-based authorization,
+             and the BCrypt PasswordEncoder. -->
         <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-crypto</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
         <!-- Testing (JUnit 5, Mockito, Spring test, MockMvc) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

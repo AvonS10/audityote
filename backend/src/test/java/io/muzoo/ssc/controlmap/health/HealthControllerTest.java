@@ -7,15 +7,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Controller slice test for {@link HealthController}. Mocks the repository so it needs no real
- * database — this is what keeps CI green before a Postgres service exists in the pipeline.
+ * database. Security filters are disabled here so the slice tests the controller in isolation;
+ * that {@code /api/health} is actually public is covered by the full security configuration.
  */
 @WebMvcTest(HealthController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class HealthControllerTest {
 
     @Autowired

@@ -32,14 +32,23 @@ spring:
 # Demo-user seeding (DataSeeder). Real values come from the gitignored .env; blank = not seeded.
 seed:
   analyst:
+    name: ${SEED_ANALYST_NAME:Demo Analyst}
     email: ${SEED_ANALYST_EMAIL:}
     password: ${SEED_ANALYST_PASSWORD:}
   reviewer:
+    name: ${SEED_REVIEWER_NAME:Demo Reviewer}
     email: ${SEED_REVIEWER_EMAIL:}
     password: ${SEED_REVIEWER_PASSWORD:}
 
 server:
   port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        # Secure is off for local http; the prod profile / reverse proxy sets SESSION_COOKIE_SECURE=true.
+        secure: ${SESSION_COOKIE_SECURE:false}
 
 # Keep error responses lean — no stack traces or internals leaked to clients (PLAN §10 error model).
   error:
