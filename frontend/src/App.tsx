@@ -3,7 +3,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute'
 import { AppShell } from './components/app/AppShell'
 import { ControlCatalog } from './pages/ControlCatalog'
 import { Dashboard } from './pages/Dashboard'
-import { FindingDetailStub } from './pages/FindingDetailStub'
+import { FindingDetailScreen } from './pages/FindingDetailScreen'
 import { FindingForm } from './pages/FindingForm'
 import { Login } from './pages/Login'
 import { Placeholder } from './pages/Placeholder'
@@ -27,7 +27,7 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/findings/new" element={<FindingForm />} />
         <Route path="/findings/:id/edit" element={<FindingForm />} />
-        <Route path="/findings/:id" element={<FindingDetailStub />} />
+        <Route path="/findings/:id" element={<FindingDetailScreen />} />
         <Route path="/catalog" element={<ControlCatalog />} />
         <Route path="/coverage" element={<Placeholder title="Control Coverage" note="Coverage and gaps arrive in build increment #13." />} />
         <Route path="/posture" element={<Placeholder title="Risk Posture" note="The risk posture dashboard arrives in build increment #19." />} />

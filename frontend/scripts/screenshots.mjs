@@ -79,11 +79,19 @@ if (EMAIL && PASSWORD) {
   await page.waitForTimeout(200)
   await shot('finding-form-cvss')
 
-  // Edit an existing finding, then the delete confirm dialog
+  // Finding detail screen (open the first finding)
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(400)
   await page.click('table.cm-findings tbody tr')
-  await page.waitForTimeout(300)
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(400)
+  await shot('finding-detail')
+  // Add-control mapping panel
+  await page.getByRole('button', { name: 'Add control mapping' }).click()
+  await page.waitForTimeout(600)
+  await shot('finding-detail-add')
+
+  // Edit -> delete confirm dialog
   await page.getByRole('button', { name: 'Edit finding' }).click()
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(300)

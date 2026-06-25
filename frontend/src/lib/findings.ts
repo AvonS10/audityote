@@ -85,3 +85,8 @@ export const getFinding = (id: string | number) => api.get<FindingDetail>(`/find
 export const createFinding = (body: FindingRequest) => api.post<FindingDetail>('/findings', body)
 export const updateFinding = (id: string | number, body: FindingRequest) => api.put<FindingDetail>(`/findings/${id}`, body)
 export const deleteFinding = (id: string | number) => api.del<void>(`/findings/${id}`)
+
+export const addControlMapping = (findingId: string | number, controlId: number) =>
+  api.post<FindingDetail>(`/findings/${findingId}/controls`, { controlId })
+export const removeControlMapping = (findingId: string | number, controlId: number) =>
+  api.del<FindingDetail>(`/findings/${findingId}/controls/${controlId}`)

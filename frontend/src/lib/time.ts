@@ -1,3 +1,8 @@
+/** Absolute date (YYYY-MM-DD) for detail/audit views. */
+export function formatDate(iso: string): string {
+  return new Date(iso).toISOString().slice(0, 10)
+}
+
 /** Relative time for dense views ("2h ago", "yesterday", "1 week ago"); ISO date when older. */
 export function relativeTime(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime()
