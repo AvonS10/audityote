@@ -43,3 +43,45 @@ export function getFindings(filters: FindingFilters) {
   p.set('size', String(filters.size ?? 100))
   return api.get<PagedResponse<FindingSummary>>(`/findings?${p.toString()}`)
 }
+
+export interface AssetDetail {
+  name: string
+  env: string | null
+  component: string | null
+  url: string | null
+}
+
+export interface MappedControl {
+  controlId: number
+  framework: string
+  code: string
+  title: string
+}
+
+export interface FindingDetail {
+  id: number
+  reference: string
+  title: string
+  description: string | null
+  severity: string
+  cvss: number | null
+  status: string
+  asset: AssetDetail | null
+  owner: string
+  createdAt: string
+  updatedAt: string
+  controls: MappedControl[]
+}
+
+export interface FindingRequest {
+  title: string
+  description?: string | null
+  severity?: string | null
+  cvss?: number | null
+  asset: { name: string; env?: string | null; component?: string | null; url?: string | null }
+}
+
+export const getFinding = (id: string | number) => api.get<FindingDetail>(`/findings/${id}`)
+export const createFinding = (body: FindingRequest) => api.post<FindingDetail>('/findings', body)
+export const updateFinding = (id: string | number, body: FindingRequest) => api.put<FindingDetail>(`/findings/${id}`, body)
+export const deleteFinding = (id: string | number) => api.del<void>(`/findings/${id}`)

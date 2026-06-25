@@ -69,6 +69,27 @@ if (EMAIL && PASSWORD) {
   await page.selectOption('select >> nth=1', 'critical')
   await page.waitForTimeout(500)
   await shot('dashboard-filtered')
+
+  // New finding form
+  await page.goto(`${BASE}/findings/new`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(250)
+  await shot('finding-form-new')
+  // CVSS entered -> severity derived + score preview
+  await page.fill('input[placeholder="0.0"]', '9.8')
+  await page.waitForTimeout(200)
+  await shot('finding-form-cvss')
+
+  // Edit an existing finding, then the delete confirm dialog
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(400)
+  await page.click('table.cm-findings tbody tr')
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: 'Edit finding' }).click()
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  await page.waitForTimeout(250)
+  await shot('finding-confirm-delete')
 } else {
   console.log('SEED_ANALYST_* not set — skipping authenticated screenshots')
 }

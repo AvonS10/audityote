@@ -17,6 +17,7 @@ import {
   Settings,
   Shield,
   ShieldCheck,
+  Trash2,
   TrendingUp,
   TriangleAlert,
   X,
@@ -49,6 +50,7 @@ const ICONS = {
   map: MapIcon,
   'trending-up': TrendingUp,
   'clipboard-check': ClipboardCheck,
+  trash: Trash2,
   info: Info,
   'log-out': LogOut,
 } satisfies Record<string, LucideIcon>
