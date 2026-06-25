@@ -4,10 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.muzoo.ssc.controlmap.domain.Control;
+import io.muzoo.ssc.controlmap.domain.Finding;
+import io.muzoo.ssc.controlmap.domain.FindingStatus;
 import io.muzoo.ssc.controlmap.domain.Framework;
 import io.muzoo.ssc.controlmap.domain.Role;
+import io.muzoo.ssc.controlmap.domain.Severity;
 import io.muzoo.ssc.controlmap.domain.User;
 import io.muzoo.ssc.controlmap.repository.ControlRepository;
+import io.muzoo.ssc.controlmap.repository.FindingControlMappingRepository;
+import io.muzoo.ssc.controlmap.repository.FindingRepository;
 import io.muzoo.ssc.controlmap.repository.FrameworkRepository;
 import io.muzoo.ssc.controlmap.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -28,6 +33,8 @@ class DataSeederTest {
     @Autowired private FrameworkRepository frameworks;
     @Autowired private ControlRepository controls;
     @Autowired private UserRepository users;
+    @Autowired private FindingRepository findingRepo;
+    @Autowired private FindingControlMappingRepository mappingRepo;
 
     private DataSeeder newSeeder() {
         PasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -36,7 +43,7 @@ class DataSeederTest {
         props.getAnalyst().setPassword("analyst-secret");
         props.getReviewer().setEmail("reviewer@controlmap.test");
         props.getReviewer().setPassword("reviewer-secret");
-        return new DataSeeder(frameworks, controls, users, encoder, props, new ObjectMapper());
+        return new DataSeeder(frameworks, controls, users, findingRepo, mappingRepo, encoder, props, new ObjectMapper());
     }
 
     @Test
@@ -62,6 +69,13 @@ class DataSeederTest {
         assertThat(analyst.getRole()).isEqualTo(Role.ANALYST);
         assertThat(analyst.getPasswordHash()).isNotEqualTo("analyst-secret").startsWith("$2");
         assertThat(new BCryptPasswordEncoder().matches("analyst-secret", analyst.getPasswordHash())).isTrue();
+
+        // Sample findings are seeded (owned by an Analyst) with their control mappings.
+        Finding xss = findingRepo.findByReference("CM-2025-0481").orElseThrow();
+        assertThat(xss.getSeverity()).isEqualTo(Severity.CRITICAL);
+        assertThat(xss.getStatus()).isEqualTo(FindingStatus.IN_PROGRESS);
+        assertThat(xss.getOwner()).isNotNull();
+        assertThat(mappingRepo.findByFinding_Id(xss.getId())).hasSize(2);
     }
 
     @Test

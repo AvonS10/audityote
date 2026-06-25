@@ -68,10 +68,16 @@ jobs:
       - name: Build & test
         working-directory: backend
         # AI-suggestion tests are mocked — CI needs no API key and makes no live calls.
+        # Seed creds are throwaway CI values so the seeder creates demo users + sample findings
+        # the integration tests assert against.
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/controlmap
           SPRING_DATASOURCE_USERNAME: controlmap
           SPRING_DATASOURCE_PASSWORD: controlmap
+          SEED_ANALYST_EMAIL: analyst@controlmap.local
+          SEED_ANALYST_PASSWORD: ci-analyst-pw
+          SEED_REVIEWER_EMAIL: reviewer@controlmap.local
+          SEED_REVIEWER_PASSWORD: ci-reviewer-pw
         run: mvn -B verify
 
   frontend:
