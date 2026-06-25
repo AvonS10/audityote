@@ -11,4 +11,7 @@ public interface ControlRepository extends JpaRepository<Control, Long> {
     Optional<Control> findByFramework_IdAndCode(Long frameworkId, String code);
 
     List<Control> findByFramework_Id(Long frameworkId);
+
+    /** Controls of a framework, in catalog (insertion) order — backs the catalog screen. */
+    List<Control> findByFramework_SlugOrderByIdAsc(String slug);
 }

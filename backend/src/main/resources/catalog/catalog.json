@@ -1,0 +1,62 @@
+{
+  "frameworks": [
+    {
+      "slug": "iso27001",
+      "name": "ISO/IEC 27001",
+      "version": "2022",
+      "controls": [
+        { "code": "A.5.7", "title": "Threat intelligence", "category": "Organizational", "description": "Information relating to information security threats is collected and analysed to produce actionable threat intelligence." },
+        { "code": "A.5.17", "title": "Authentication information", "category": "Organizational", "description": "Allocation and management of authentication information is controlled, including advising personnel on proper handling." },
+        { "code": "A.5.23", "title": "Information security for cloud services", "category": "Organizational", "description": "Acquisition, use, management and exit from cloud services are governed by the organization's information security requirements." },
+        { "code": "A.5.30", "title": "ICT readiness for business continuity", "category": "Organizational", "description": "ICT readiness is planned, implemented, maintained and tested based on business continuity objectives." },
+        { "code": "A.6.3", "title": "Information security awareness & training", "category": "People", "description": "Personnel receive appropriate security awareness education and training relevant to their role and function." },
+        { "code": "A.7.4", "title": "Physical security monitoring", "category": "Physical", "description": "Premises are continuously monitored for unauthorized physical access." },
+        { "code": "A.8.5", "title": "Secure authentication", "category": "Technological", "description": "Secure authentication technologies and procedures are implemented based on access restrictions and the access control policy." },
+        { "code": "A.8.8", "title": "Management of technical vulnerabilities", "category": "Technological", "description": "Information about technical vulnerabilities is obtained, the organization's exposure evaluated, and appropriate measures taken." },
+        { "code": "A.8.15", "title": "Logging", "category": "Technological", "description": "Logs recording activities, exceptions, faults and other relevant events are produced, stored, protected and analysed." },
+        { "code": "A.8.16", "title": "Monitoring activities", "category": "Technological", "description": "Networks, systems and applications are monitored for anomalous behaviour to evaluate potential security incidents." },
+        { "code": "A.8.23", "title": "Web filtering", "category": "Technological", "description": "Access to external websites is managed to reduce exposure to malicious content." },
+        { "code": "A.8.24", "title": "Use of cryptography", "category": "Technological", "description": "Rules for the effective use of cryptography, including key management, are defined and implemented." },
+        { "code": "A.8.25", "title": "Secure development life cycle", "category": "Technological", "description": "Rules for the secure development of software and systems are established and applied." },
+        { "code": "A.8.26", "title": "Application security requirements", "category": "Technological", "description": "Information security requirements are identified, specified and approved when developing or acquiring applications." },
+        { "code": "A.8.28", "title": "Secure coding", "category": "Technological", "description": "Secure coding principles are applied to software development to reduce vulnerabilities." }
+      ]
+    },
+    {
+      "slug": "owasp",
+      "name": "OWASP Top 10",
+      "version": "2025",
+      "controls": [
+        { "code": "A01", "title": "Broken access control", "category": null, "description": "Restrictions on what authenticated users may do are not properly enforced, allowing access to unauthorized functions or data." },
+        { "code": "A02", "title": "Cryptographic failures", "category": null, "description": "Sensitive data is inadequately protected in transit or at rest due to missing or weak cryptography." },
+        { "code": "A03", "title": "Injection", "category": null, "description": "Untrusted data is sent to an interpreter as part of a command or query, allowing execution of unintended commands (SQL, OS, XSS)." },
+        { "code": "A04", "title": "Insecure design", "category": null, "description": "Missing or ineffective security controls arising from flaws in design and architecture rather than implementation." },
+        { "code": "A05", "title": "Security misconfiguration", "category": null, "description": "Insecure default configurations, incomplete setups, or verbose error messages expose the application to attack." },
+        { "code": "A06", "title": "Vulnerable & outdated components", "category": null, "description": "Use of components with known vulnerabilities, or that are unsupported and out of date." },
+        { "code": "A07", "title": "Identification & authentication failures", "category": null, "description": "Weaknesses in authentication and session management that allow account compromise." },
+        { "code": "A08", "title": "Software & data integrity failures", "category": null, "description": "Code and infrastructure that fail to protect against integrity violations, e.g. insecure deserialization or unsigned updates." },
+        { "code": "A09", "title": "Security logging & monitoring failures", "category": null, "description": "Insufficient logging, detection and response that lets breaches go unnoticed." },
+        { "code": "A10", "title": "Server-side request forgery (SSRF)", "category": null, "description": "The application fetches a remote resource without validating the user-supplied URL, enabling requests to unintended destinations." }
+      ]
+    },
+    {
+      "slug": "nist",
+      "name": "NIST CSF",
+      "version": "2.0",
+      "controls": [
+        { "code": "GV.OC", "title": "Organizational context", "category": "Govern", "description": "The circumstances surrounding the organization's cybersecurity risk management decisions are understood." },
+        { "code": "GV.RM", "title": "Risk management strategy", "category": "Govern", "description": "Priorities, constraints, risk tolerance and assumptions are established and used to support operational risk decisions." },
+        { "code": "ID.AM", "title": "Asset management", "category": "Identify", "description": "Assets (data, hardware, software, systems, people) are identified and managed consistent with their risk to objectives." },
+        { "code": "ID.RA", "title": "Risk assessment", "category": "Identify", "description": "The cybersecurity risk to the organization, its assets and individuals is understood." },
+        { "code": "PR.AA", "title": "Identity management, authentication & access control", "category": "Protect", "description": "Access to assets is limited to authorized users, services and hardware, and managed commensurate with risk." },
+        { "code": "PR.DS", "title": "Data security", "category": "Protect", "description": "Data is managed consistent with the organization's risk strategy to protect confidentiality, integrity and availability." },
+        { "code": "PR.PS", "title": "Platform security", "category": "Protect", "description": "The hardware, software and services of physical and virtual platforms are managed consistent with risk." },
+        { "code": "PR.IR", "title": "Technology infrastructure resilience", "category": "Protect", "description": "Security architectures are managed to protect asset confidentiality, integrity, availability and resilience." },
+        { "code": "DE.CM", "title": "Continuous monitoring", "category": "Detect", "description": "Assets are monitored to find anomalies, indicators of compromise and other potentially adverse events." },
+        { "code": "DE.AE", "title": "Adverse event analysis", "category": "Detect", "description": "Anomalies, indicators of compromise and other adverse events are analysed to characterize them and detect incidents." },
+        { "code": "RS.MA", "title": "Incident management", "category": "Respond", "description": "Responses to detected cybersecurity incidents are managed." },
+        { "code": "RC.RP", "title": "Incident recovery plan execution", "category": "Recover", "description": "Restoration activities are performed to ensure operational availability of systems and services affected by an incident." }
+      ]
+    }
+  ]
+}

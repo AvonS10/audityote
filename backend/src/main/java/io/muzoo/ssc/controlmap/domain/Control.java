@@ -34,15 +34,20 @@ public class Control {
     @Column(columnDefinition = "text")
     private String description;
 
+    /** Theme/group used to organise the catalog (e.g. ISO "Technological", NIST "Protect"); may be null. */
+    @Column(length = 100)
+    private String category;
+
     protected Control() {
         // JPA
     }
 
-    public Control(Framework framework, String code, String title, String description) {
+    public Control(Framework framework, String code, String title, String description, String category) {
         this.framework = framework;
         this.code = code;
         this.title = title;
         this.description = description;
+        this.category = category;
     }
 
     public Long getId() {
@@ -79,5 +84,13 @@ public class Control {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 }

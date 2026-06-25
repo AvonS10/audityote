@@ -2,6 +2,8 @@ package io.muzoo.ssc.controlmap.seed;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.muzoo.ssc.controlmap.domain.Control;
 import io.muzoo.ssc.controlmap.domain.Framework;
 import io.muzoo.ssc.controlmap.domain.Role;
 import io.muzoo.ssc.controlmap.domain.User;
@@ -34,21 +36,26 @@ class DataSeederTest {
         props.getAnalyst().setPassword("analyst-secret");
         props.getReviewer().setEmail("reviewer@controlmap.test");
         props.getReviewer().setPassword("reviewer-secret");
-        return new DataSeeder(frameworks, controls, users, encoder, props);
+        return new DataSeeder(frameworks, controls, users, encoder, props, new ObjectMapper());
     }
 
     @Test
     void seedsCatalogAndDemoUsers() {
         newSeeder().seed();
 
-        // All three frameworks, with the expected number of controls each.
-        Framework iso = frameworks.findByNameAndVersion("ISO/IEC 27001", "2022").orElseThrow();
-        Framework owasp = frameworks.findByNameAndVersion("OWASP Top 10", "2025").orElseThrow();
-        Framework nist = frameworks.findByNameAndVersion("NIST CSF", "2.0").orElseThrow();
+        // All three frameworks (by slug), with the expected number of controls each.
+        Framework iso = frameworks.findBySlug("iso27001").orElseThrow();
+        Framework owasp = frameworks.findBySlug("owasp").orElseThrow();
+        Framework nist = frameworks.findBySlug("nist").orElseThrow();
         assertThat(controls.findByFramework_Id(iso.getId())).hasSize(15);
         assertThat(controls.findByFramework_Id(owasp.getId())).hasSize(10);
         assertThat(controls.findByFramework_Id(nist.getId())).hasSize(12);
-        assertThat(controls.findByFramework_IdAndCode(iso.getId(), "A.8.28")).isPresent();
+
+        // Controls carry the title/category/description from the JSON catalog.
+        Control secureCoding = controls.findByFramework_IdAndCode(iso.getId(), "A.8.28").orElseThrow();
+        assertThat(secureCoding.getTitle()).isEqualTo("Secure coding");
+        assertThat(secureCoding.getCategory()).isEqualTo("Technological");
+        assertThat(secureCoding.getDescription()).contains("Secure coding principles");
 
         // Demo user is created with a BCrypt hash (not plaintext) and the right role.
         User analyst = users.findByEmail("analyst@controlmap.test").orElseThrow();

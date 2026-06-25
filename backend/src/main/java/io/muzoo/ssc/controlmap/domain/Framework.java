@@ -17,6 +17,10 @@ public class Framework {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Stable key used by the API/UI (e.g. {@code iso27001}), distinct from the display name. */
+    @Column(nullable = false, unique = true, length = 50)
+    private String slug;
+
     @Column(nullable = false)
     private String name;
 
@@ -27,13 +31,22 @@ public class Framework {
         // JPA
     }
 
-    public Framework(String name, String version) {
+    public Framework(String slug, String name, String version) {
+        this.slug = slug;
         this.name = name;
         this.version = version;
     }
 
     public Long getId() {
         return id;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     public String getName() {

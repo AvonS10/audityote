@@ -43,9 +43,9 @@ class DomainPersistenceTest {
         // — the @SpringBootTest boot in this suite seeds the real frameworks into the same DB.
         User analyst = users.save(
                 new User("graph-test@controlmap.test", "Graph Tester", "$2a$bcrypt-hash", Role.ANALYST));
-        Framework iso = frameworks.save(new Framework("ControlMap Test Framework", "t1"));
+        Framework iso = frameworks.save(new Framework("controlmap-test-fw", "ControlMap Test Framework", "t1"));
         Control secureCoding = controls.save(
-                new Control(iso, "T.1", "Test control", "A control used only by this test."));
+                new Control(iso, "T.1", "Test control", "A control used only by this test.", "Testing"));
 
         Finding finding = findings.save(new Finding(
                 "CM-TEST-0001", "SQL injection in login", "Unparameterised query.",
@@ -58,7 +58,7 @@ class DomainPersistenceTest {
         // Custom finders resolve.
         assertThat(users.findByEmail("graph-test@controlmap.test")).get()
                 .extracting(User::getRole).isEqualTo(Role.ANALYST);
-        assertThat(frameworks.findByNameAndVersion("ControlMap Test Framework", "t1")).isPresent();
+        assertThat(frameworks.findBySlug("controlmap-test-fw")).isPresent();
         assertThat(controls.findByFramework_IdAndCode(iso.getId(), "T.1")).isPresent();
         assertThat(controls.findByFramework_Id(iso.getId())).hasSize(1);
 
