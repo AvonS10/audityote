@@ -60,6 +60,15 @@ if (EMAIL && PASSWORD) {
   await page.fill('input[type="search"]', 'crypto')
   await page.waitForTimeout(200)
   await shot('catalog-search')
+
+  // Findings dashboard
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(400)
+  await shot('dashboard')
+  // Filter by severity = critical
+  await page.selectOption('select >> nth=1', 'critical')
+  await page.waitForTimeout(500)
+  await shot('dashboard-filtered')
 } else {
   console.log('SEED_ANALYST_* not set — skipping authenticated screenshots')
 }
