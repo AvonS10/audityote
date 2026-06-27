@@ -1,0 +1,114 @@
+package io.muzoo.ssc.controlmap.web;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import io.muzoo.ssc.controlmap.domain.Asset;
+import io.muzoo.ssc.controlmap.domain.Control;
+import io.muzoo.ssc.controlmap.domain.Finding;
+import io.muzoo.ssc.controlmap.domain.FindingControlMapping;
+import io.muzoo.ssc.controlmap.domain.FindingStatus;
+import io.muzoo.ssc.controlmap.domain.Role;
+import io.muzoo.ssc.controlmap.domain.Severity;
+import io.muzoo.ssc.controlmap.domain.User;
+import io.muzoo.ssc.controlmap.repository.ControlRepository;
+import io.muzoo.ssc.controlmap.repository.FindingControlMappingRepository;
+import io.muzoo.ssc.controlmap.repository.FindingRepository;
+import io.muzoo.ssc.controlmap.repository.FrameworkRepository;
+import io.muzoo.ssc.controlmap.repository.UserRepository;
+import java.math.BigDecimal;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Report export — CSV body/headers, framework validation, unsupported-format and auth handling. */
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
+class ReportControllerTest {
+
+    private static final String ANALYST = "analyst@report.test";
+
+    @Autowired private MockMvc mockMvc;
+    @Autowired private UserRepository users;
+    @Autowired private FindingRepository findings;
+    @Autowired private FrameworkRepository frameworks;
+    @Autowired private ControlRepository controls;
+    @Autowired private FindingControlMappingRepository mappings;
+
+    @BeforeEach
+    void setUp() {
+        User owner = users.save(new User(ANALYST, "Report Analyst", "x", Role.ANALYST));
+        // A title containing a comma exercises the CSV quoting/escaping path.
+        Finding f = findings.save(new Finding("CM-RPT-0001", "Injection, stored", "d",
+                Severity.HIGH, new BigDecimal("7.5"), owner, new Asset("Edge", null, null, null)));
+        f.setStatus(FindingStatus.OPEN);
+        findings.save(f);
+        Long owaspId = frameworks.findBySlug("owasp").orElseThrow().getId();
+        Control a05 = controls.findByFramework_IdAndCode(owaspId, "A05").orElseThrow();
+        mappings.save(new FindingControlMapping(f, a05));
+    }
+
+    @Test
+    @WithMockUser(username = ANALYST)
+    void findingsCsvDownloadsWithHeadersAndEscaping() throws Exception {
+        mockMvc.perform(get("/api/reports/findings").param("format", "csv"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(header().string("Content-Disposition", containsString("attachment")))
+                .andExpect(header().string("Content-Disposition", containsString("findings-")))
+                .andExpect(content().string(containsString("Reference,Title,Severity,CVSS,Status,Owner,Asset,Mapped controls,Updated")))
+                .andExpect(content().string(containsString("CM-RPT-0001")))
+                // comma in the title forces quoting; the mapped control is joined as framework:code.
+                .andExpect(content().string(containsString("\"Injection, stored\"")))
+                .andExpect(content().string(containsString("owasp:A05")));
+    }
+
+    @Test
+    @WithMockUser(username = ANALYST)
+    void findingsDefaultsToCsvWhenFormatOmitted() throws Exception {
+        mockMvc.perform(get("/api/reports/findings"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"));
+    }
+
+    @Test
+    @WithMockUser(username = ANALYST)
+    void coverageCsvDownloadsForFramework() throws Exception {
+        mockMvc.perform(get("/api/reports/coverage").param("framework", "owasp").param("format", "csv"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(header().string("Content-Disposition", containsString("coverage-owasp-")))
+                .andExpect(content().string(startsWith("Code,Control,Findings,Highest severity,At risk")))
+                .andExpect(content().string(containsString("A05")));
+    }
+
+    @Test
+    @WithMockUser(username = ANALYST)
+    void unsupportedFormatIs400() throws Exception {
+        mockMvc.perform(get("/api/reports/findings").param("format", "xml"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = ANALYST)
+    void unknownFrameworkIs404() throws Exception {
+        mockMvc.perform(get("/api/reports/coverage").param("framework", "nope").param("format", "csv"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void requiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/reports/findings").param("format", "csv"))
+                .andExpect(status().isUnauthorized());
+    }
+}

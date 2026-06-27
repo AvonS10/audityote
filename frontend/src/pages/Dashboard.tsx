@@ -4,7 +4,9 @@ import { getFrameworks } from '../lib/catalog'
 import { getFindings, type FindingFilters, type FindingSummary } from '../lib/findings'
 import { relativeTime } from '../lib/time'
 import { Avatar } from '../components/Avatar'
+import { ExportButton } from '../components/ExportButton'
 import { Icon } from '../components/Icon'
+import { findingsReportPath } from '../lib/reports'
 import { Button } from '../components/ui/Button'
 import { SearchInput } from '../components/ui/SearchInput'
 import { Select } from '../components/ui/Select'
@@ -87,6 +89,7 @@ export function Dashboard() {
           <span className="text-muted" style={{ fontSize: 'var(--fs-caption)', fontVariantNumeric: 'tabular-nums' }}>
             <b className="text-strong" style={{ fontWeight: 600 }}>{total}</b> findings
           </span>
+          <ExportButton path={findingsReportPath()} disabled={total === 0} />
           <Button variant="primary" iconLeft="plus" onClick={() => navigate('/findings/new')}>
             New finding
           </Button>

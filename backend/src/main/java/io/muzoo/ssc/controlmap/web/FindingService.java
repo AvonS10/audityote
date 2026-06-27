@@ -70,6 +70,15 @@ public class FindingService {
         return PagedResponse.of(result, summaries);
     }
 
+    /** All findings (no paging) as summaries, newest first — backs report export (#14). */
+    public List<FindingSummary> listAllForExport() {
+        List<Finding> all = findings.findAll(Sort.by(Sort.Direction.DESC, "updatedAt"));
+        Map<Long, List<ControlRef>> controlsByFinding = loadControlRefs(all);
+        return all.stream()
+                .map(f -> mapper.toSummary(f, controlsByFinding.getOrDefault(f.getId(), List.of())))
+                .toList();
+    }
+
     /** One batch query for all mapped controls on the page, grouped by finding id (no N+1). */
     private Map<Long, List<ControlRef>> loadControlRefs(List<Finding> page) {
         if (page.isEmpty()) {

@@ -47,6 +47,16 @@ if (EMAIL && PASSWORD) {
   await page.mouse.click(700, 400)
   await page.waitForTimeout(150)
 
+  // Control Coverage screen (default Sovereign theme)
+  await page.goto(`${BASE}/coverage`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(400)
+  await shot('coverage')
+  await page.fill('input[type="search"]', 'inject')
+  await page.waitForTimeout(200)
+  await shot('coverage-search')
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(200)
+
   // Carbon theme
   await page.click('button[title="Switch visual direction"]')
   await page.waitForTimeout(200)

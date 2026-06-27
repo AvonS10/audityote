@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getFrameworks, type Framework } from '../lib/catalog'
 import { getCoverage, type CoverageRow } from '../lib/coverage'
+import { coverageReportPath } from '../lib/reports'
+import { ExportButton } from '../components/ExportButton'
 import { Icon } from '../components/Icon'
 import { Select } from '../components/ui/Select'
 import { SearchInput } from '../components/ui/SearchInput'
@@ -78,14 +80,17 @@ export function ControlCoverage() {
           </p>
         </div>
         {frameworks.length > 0 ? (
-          <Select
-            value={fw}
-            onChange={(e) => {
-              setFw(e.target.value)
-              setQ('')
-            }}
-            options={frameworks.map((f) => ({ value: f.slug, label: `${f.name} ${f.version}` }))}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Select
+              value={fw}
+              onChange={(e) => {
+                setFw(e.target.value)
+                setQ('')
+              }}
+              options={frameworks.map((f) => ({ value: f.slug, label: `${f.name} ${f.version}` }))}
+            />
+            <ExportButton path={coverageReportPath(fw)} disabled={!fw || status !== 'ready'} />
+          </div>
         ) : null}
       </div>
 
