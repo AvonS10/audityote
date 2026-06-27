@@ -58,6 +58,15 @@ export interface MappedControl {
   title: string
 }
 
+export interface AuditEntry {
+  actor: string
+  action: string
+  fromStatus: string | null
+  toStatus: string | null
+  comment: string | null
+  timestamp: string
+}
+
 export interface FindingDetail {
   id: number
   reference: string
@@ -71,6 +80,7 @@ export interface FindingDetail {
   createdAt: string
   updatedAt: string
   controls: MappedControl[]
+  audit: AuditEntry[]
 }
 
 export interface FindingRequest {

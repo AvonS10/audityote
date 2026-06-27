@@ -25,6 +25,7 @@ import { FrameworkTag } from '../components/data/FrameworkTag'
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog'
 import { ReturnDialog } from '../components/feedback/ReturnDialog'
 import { useToast } from '../components/feedback/ToastProvider'
+import { ActivityTrail } from '../components/workflow/ActivityTrail'
 import { WorkflowTracker } from '../components/workflow/WorkflowTracker'
 
 const FW_FULL: Record<string, string> = {
@@ -385,6 +386,10 @@ export function FindingDetailScreen() {
           onAdd={(controlId) => mutate(addControlMapping(finding.id, controlId))}
           onRemove={(controlId) => mutate(removeControlMapping(finding.id, controlId))}
         />
+
+        <SectionCard title="Activity" icon="list-checks">
+          <ActivityTrail audit={finding.audit} />
+        </SectionCard>
       </div>
 
       <StatusActions finding={finding} actions={actions} busy={busy} onAction={onAction} />

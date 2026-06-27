@@ -114,6 +114,18 @@ if (EMAIL && PASSWORD) {
   await page.getByRole('button', { name: 'Delete', exact: true }).click()
   await page.waitForTimeout(250)
   await shot('finding-confirm-delete')
+
+  // Activity trail on a finding with real audit history (set up out-of-band; id passed via env).
+  if (process.env.SCREENSHOT_FINDING_ID) {
+    await page.goto(`${BASE}/findings/${process.env.SCREENSHOT_FINDING_ID}`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(500)
+    await page.evaluate(() => {
+      const h = [...document.querySelectorAll('h2')].find((e) => e.textContent === 'Activity')
+      h?.scrollIntoView({ block: 'start' })
+    })
+    await page.waitForTimeout(250)
+    await shot('finding-activity')
+  }
 } else {
   console.log('SEED_ANALYST_* not set — skipping authenticated screenshots')
 }
