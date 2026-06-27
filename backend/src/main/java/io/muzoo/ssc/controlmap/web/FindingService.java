@@ -1,5 +1,6 @@
 package io.muzoo.ssc.controlmap.web;
 
+import io.muzoo.ssc.controlmap.audit.FindingAuditEvent;
 import io.muzoo.ssc.controlmap.domain.Asset;
 import io.muzoo.ssc.controlmap.domain.Control;
 import io.muzoo.ssc.controlmap.domain.Finding;
@@ -8,6 +9,7 @@ import io.muzoo.ssc.controlmap.domain.FindingStatus;
 import io.muzoo.ssc.controlmap.domain.MappingSource;
 import io.muzoo.ssc.controlmap.domain.Severity;
 import io.muzoo.ssc.controlmap.domain.User;
+import io.muzoo.ssc.controlmap.repository.AuditLogRepository;
 import io.muzoo.ssc.controlmap.repository.ControlRepository;
 import io.muzoo.ssc.controlmap.repository.FindingControlMappingRepository;
 import io.muzoo.ssc.controlmap.repository.FindingRepository;
@@ -28,6 +30,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -48,18 +51,22 @@ public class FindingService {
     private final FindingControlMappingRepository mappings;
     private final ControlRepository controls;
     private final UserRepository users;
+    private final AuditLogRepository auditLog;
     private final FindingMapper mapper;
     private final WorkflowStateMachine workflow;
+    private final ApplicationEventPublisher events;
 
     public FindingService(FindingRepository findings, FindingControlMappingRepository mappings,
-                          ControlRepository controls, UserRepository users, FindingMapper mapper,
-                          WorkflowStateMachine workflow) {
+                          ControlRepository controls, UserRepository users, AuditLogRepository auditLog,
+                          FindingMapper mapper, WorkflowStateMachine workflow, ApplicationEventPublisher events) {
         this.findings = findings;
         this.mappings = mappings;
         this.controls = controls;
         this.users = users;
+        this.auditLog = auditLog;
         this.mapper = mapper;
         this.workflow = workflow;
+        this.events = events;
     }
 
     public PagedResponse<FindingSummary> list(String status, String severity, String framework, String q,
@@ -99,7 +106,7 @@ public class FindingService {
     }
 
     public FindingDetail get(Long id) {
-        return mapper.toDetail(requireFinding(id), mappedControls(id));
+        return detail(requireFinding(id));
     }
 
     @Transactional
@@ -108,7 +115,8 @@ public class FindingService {
         Finding finding = new Finding(nextReference(), request.title(), request.description(),
                 resolveSeverity(request.severity(), request.cvss()), request.cvss(), owner, toAsset(request.asset()));
         Finding saved = findings.save(finding);
-        return mapper.toDetail(saved, List.of());
+        events.publishEvent(new FindingAuditEvent(saved, owner, "created", null, FindingStatus.OPEN, null));
+        return detail(saved);
     }
 
     @Transactional
@@ -127,7 +135,7 @@ public class FindingService {
             finding.setStatus(FindingStatus.IN_PROGRESS);
         }
         Finding saved = findings.save(finding);
-        return mapper.toDetail(saved, mappedControls(id));
+        return detail(saved);
     }
 
     @Transactional
@@ -158,7 +166,7 @@ public class FindingService {
             mapping.setAiModel(request.aiModel());
         }
         mappings.save(mapping);
-        return mapper.toDetail(finding, mappedControls(findingId));
+        return detail(finding);
     }
 
     @Transactional
@@ -170,7 +178,7 @@ public class FindingService {
         FindingControlMapping mapping = mappings.findByFinding_IdAndControl_Id(findingId, controlId)
                 .orElseThrow(() -> new NotFoundException("That control is not mapped to this finding."));
         mappings.delete(mapping);
-        return mapper.toDetail(finding, mappedControls(findingId));
+        return detail(finding);
     }
 
     /**
@@ -186,11 +194,13 @@ public class FindingService {
         boolean actorIsOwner = finding.getOwner().getEmail().equalsIgnoreCase(currentUserEmail);
         long mappedControlCount = mappings.countByFinding_Id(id);
 
+        FindingStatus from = finding.getStatus();
         FindingStatus target = workflow.next(
-                finding.getStatus(), action, request.comment(), actorIsOwner, actor.getRole(), mappedControlCount);
+                from, action, request.comment(), actorIsOwner, actor.getRole(), mappedControlCount);
         finding.setStatus(target);
         Finding saved = findings.save(finding);
-        return mapper.toDetail(saved, mappedControls(id));
+        events.publishEvent(new FindingAuditEvent(saved, actor, action.wire(), from, target, blankToNull(request.comment())));
+        return detail(saved);
     }
 
     private WorkflowAction parseAction(String value) {
@@ -222,11 +232,23 @@ public class FindingService {
         return users.findByEmail(email).orElseThrow(() -> new ForbiddenException("Authenticated user not found."));
     }
 
+    /** Full detail DTO: the finding with its mapped controls and audit trail. */
+    private FindingDetail detail(Finding finding) {
+        Long id = finding.getId();
+        return mapper.toDetail(finding, mappedControls(id), auditTrail(id));
+    }
+
     private List<FindingDetail.MappedControl> mappedControls(Long findingId) {
         return mappings.findWithControlByFindingIds(List.of(findingId)).stream()
                 .map(m -> new FindingDetail.MappedControl(
                         m.getControl().getId(), m.getControl().getFramework().getSlug(),
                         m.getControl().getCode(), m.getControl().getTitle()))
+                .toList();
+    }
+
+    private List<FindingDetail.AuditEntry> auditTrail(Long findingId) {
+        return auditLog.findByFinding_IdOrderByTimestampAscIdAsc(findingId).stream()
+                .map(mapper::toAuditEntry)
                 .toList();
     }
 

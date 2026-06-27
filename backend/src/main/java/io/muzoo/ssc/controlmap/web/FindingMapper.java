@@ -1,6 +1,7 @@
 package io.muzoo.ssc.controlmap.web;
 
 import io.muzoo.ssc.controlmap.domain.Asset;
+import io.muzoo.ssc.controlmap.domain.AuditLog;
 import io.muzoo.ssc.controlmap.domain.Finding;
 import io.muzoo.ssc.controlmap.domain.FindingStatus;
 import io.muzoo.ssc.controlmap.domain.Severity;
@@ -33,7 +34,8 @@ public class FindingMapper {
                 finding.getUpdatedAt());
     }
 
-    public FindingDetail toDetail(Finding finding, List<FindingDetail.MappedControl> controls) {
+    public FindingDetail toDetail(Finding finding, List<FindingDetail.MappedControl> controls,
+                                  List<FindingDetail.AuditEntry> audit) {
         Asset asset = finding.getAsset();
         return new FindingDetail(
                 finding.getId(),
@@ -47,7 +49,18 @@ public class FindingMapper {
                 finding.getOwner().getName(),
                 finding.getCreatedAt(),
                 finding.getUpdatedAt(),
-                controls);
+                controls,
+                audit);
+    }
+
+    public FindingDetail.AuditEntry toAuditEntry(AuditLog entry) {
+        return new FindingDetail.AuditEntry(
+                entry.getActor().getName(),
+                entry.getAction(),
+                entry.getFromStatus() == null ? null : statusToWire(entry.getFromStatus()),
+                entry.getToStatus() == null ? null : statusToWire(entry.getToStatus()),
+                entry.getComment(),
+                entry.getTimestamp());
     }
 
     // ---- casing translation (enum <-> wire) ----

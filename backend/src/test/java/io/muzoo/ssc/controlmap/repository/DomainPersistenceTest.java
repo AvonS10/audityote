@@ -77,7 +77,7 @@ class DomainPersistenceTest {
                 .satisfies(m -> assertThat(m.getSource()).isEqualTo(MappingSource.MANUAL));
         assertThat(mappings.existsByFinding_IdAndControl_Id(finding.getId(), secureCoding.getId())).isTrue();
 
-        List<AuditLog> trail = auditLogs.findByFinding_IdOrderByTimestampAsc(finding.getId());
+        List<AuditLog> trail = auditLogs.findByFinding_IdOrderByTimestampAscIdAsc(finding.getId());
         assertThat(trail).singleElement()
                 .satisfies(a -> assertThat(a.getToStatus()).isEqualTo(FindingStatus.OPEN));
     }

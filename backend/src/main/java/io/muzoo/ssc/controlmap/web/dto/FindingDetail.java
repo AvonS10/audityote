@@ -20,7 +20,8 @@ public record FindingDetail(
         String owner,
         Instant createdAt,
         Instant updatedAt,
-        List<MappedControl> controls) {
+        List<MappedControl> controls,
+        List<AuditEntry> audit) {
 
     /** The affected asset. */
     public record AssetDto(String name, String env, String component, String url) {
@@ -28,5 +29,13 @@ public record FindingDetail(
 
     /** A control mapped to the finding (carries the control id for the remove-mapping action, #12). */
     public record MappedControl(Long controlId, String framework, String code, String title) {
+    }
+
+    /**
+     * One activity-trail entry (PLAN §10) written by the Observer (#16). {@code fromStatus}/
+     * {@code toStatus} are lowercase-kebab wire values (null when not a status change).
+     */
+    public record AuditEntry(String actor, String action, String fromStatus, String toStatus,
+                             String comment, Instant timestamp) {
     }
 }
