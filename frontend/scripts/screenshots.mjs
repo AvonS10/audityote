@@ -118,4 +118,37 @@ if (EMAIL && PASSWORD) {
   console.log('SEED_ANALYST_* not set — skipping authenticated screenshots')
 }
 
+// Reviewer view: a submitted finding shows Approve / Return, and the return dialog requires a comment.
+const REVIEWER_EMAIL = process.env.SEED_REVIEWER_EMAIL
+const REVIEWER_PASSWORD = process.env.SEED_REVIEWER_PASSWORD
+if (REVIEWER_EMAIL && REVIEWER_PASSWORD) {
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+  await page.click('button[title="Account"]')
+  await page.waitForTimeout(150)
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await page.waitForURL(/\/login/, { timeout: 10000 })
+  await page.fill('input[type="email"]', REVIEWER_EMAIL)
+  await page.fill('input[type="password"]', REVIEWER_PASSWORD)
+  await page.click('button[type="submit"]')
+  await page.waitForURL(`${BASE}/`, { timeout: 10000 })
+  await page.waitForLoadState('networkidle')
+  // Filter to submitted findings, open the first one.
+  await page.selectOption('select >> nth=0', 'submitted')
+  await page.waitForTimeout(500)
+  const row = page.locator('table.cm-findings tbody tr').first()
+  if ((await row.count()) > 0) {
+    await row.click()
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(400)
+    await shot('finding-detail-reviewer')
+    await page.getByRole('button', { name: 'Return for changes' }).click()
+    await page.waitForTimeout(250)
+    await shot('finding-return-dialog')
+  } else {
+    console.log('No submitted findings to show the reviewer view')
+  }
+} else {
+  console.log('SEED_REVIEWER_* not set — skipping reviewer screenshots')
+}
+
 await browser.close()

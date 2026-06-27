@@ -1,4 +1,5 @@
 import {
+  ArrowUpRight,
   Bell,
   Check,
   ChevronDown,
@@ -55,6 +56,7 @@ const ICONS = {
   trash: Trash2,
   info: Info,
   'log-out': LogOut,
+  'arrow-up-right': ArrowUpRight,
 } satisfies Record<string, LucideIcon>
 
 export type IconName = keyof typeof ICONS

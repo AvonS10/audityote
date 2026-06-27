@@ -8,6 +8,7 @@ import {
   deleteFinding,
   getFinding,
   removeControlMapping,
+  transitionFinding,
   type FindingDetail as FindingDetailData,
 } from '../lib/findings'
 import { formatDate, relativeTime } from '../lib/time'
@@ -22,6 +23,9 @@ import { StatusBadge } from '../components/data/StatusBadge'
 import { CvssScore } from '../components/data/CvssScore'
 import { FrameworkTag } from '../components/data/FrameworkTag'
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog'
+import { ReturnDialog } from '../components/feedback/ReturnDialog'
+import { useToast } from '../components/feedback/ToastProvider'
+import { WorkflowTracker } from '../components/workflow/WorkflowTracker'
 
 const FW_FULL: Record<string, string> = {
   iso27001: 'ISO/IEC 27001:2022',
@@ -29,6 +33,73 @@ const FW_FULL: Record<string, string> = {
   nist: 'NIST CSF 2.0',
 }
 const EDITABLE = ['open', 'in-progress', 'returned']
+
+type ActionMode = 'direct' | 'confirm' | 'comment'
+interface WfAction {
+  action: string
+  label: string
+  variant: 'primary' | 'secondary'
+  icon: IconName
+  mode: ActionMode
+}
+
+/**
+ * The transition buttons available for the current status and the signed-in user (a client-side
+ * mirror of the backend §8 rules — the server stays the source of truth and re-validates everything).
+ */
+function availableActions(status: string, isOwner: boolean, isReviewer: boolean): WfAction[] {
+  const reviewerNotOwner = isReviewer && !isOwner
+  switch (status) {
+    case 'open':
+    case 'in-progress':
+      return isOwner ? [{ action: 'submit', label: 'Submit for review', variant: 'primary', icon: 'arrow-up-right', mode: 'direct' }] : []
+    case 'submitted':
+      return reviewerNotOwner
+        ? [
+            { action: 'approve', label: 'Approve', variant: 'primary', icon: 'check', mode: 'direct' },
+            { action: 'return', label: 'Return for changes', variant: 'secondary', icon: 'arrow-up-right', mode: 'comment' },
+          ]
+        : []
+    case 'returned':
+      return isOwner ? [{ action: 'resubmit', label: 'Resubmit for review', variant: 'primary', icon: 'arrow-up-right', mode: 'direct' }] : []
+    case 'approved': {
+      const acts: WfAction[] = []
+      if (isOwner) acts.push({ action: 'remediate', label: 'Mark remediated', variant: 'primary', icon: 'shield-check', mode: 'direct' })
+      if (reviewerNotOwner) acts.push({ action: 'accept', label: 'Accept risk', variant: 'secondary', icon: 'check', mode: 'confirm' })
+      return acts
+    }
+    case 'remediated':
+    case 'accepted':
+      return isOwner ? [{ action: 'reopen', label: 'Reopen finding', variant: 'secondary', icon: 'arrow-up-right', mode: 'confirm' }] : []
+    default:
+      return []
+  }
+}
+
+const SUCCESS_MSG: Record<string, string> = {
+  submit: 'Submitted for review',
+  resubmit: 'Resubmitted for review',
+  approve: 'Finding approved',
+  return: 'Returned for changes',
+  remediate: 'Marked as remediated',
+  accept: 'Risk accepted',
+  reopen: 'Finding reopened',
+}
+
+const CONFIRM_PRESET: Record<string, { title: string; body: string; confirmLabel: string; icon: IconName }> = {
+  accept: {
+    title: 'Accept risk?',
+    body: 'This formally accepts the residual risk for this finding without remediating it. The decision is recorded against your name.',
+    confirmLabel: 'Accept risk',
+    icon: 'check',
+  },
+  reopen: {
+    title: 'Reopen finding?',
+    body: 'This returns the finding to In Progress so it can be reworked.',
+    confirmLabel: 'Reopen finding',
+    icon: 'arrow-up-right',
+  },
+}
 
 function SectionCard({ title, icon, action, children, pad }: { title?: string; icon?: IconName; action?: ReactNode; children: ReactNode; pad?: string }) {
   return (
@@ -178,11 +249,15 @@ export function FindingDetailScreen() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
+  const { toast } = useToast()
+
   const [finding, setFinding] = useState<FindingDetailData | null>(null)
   const [load, setLoad] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [actionError, setActionError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [returnOpen, setReturnOpen] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<WfAction | null>(null)
 
   useEffect(() => {
     getFinding(id!)
@@ -194,25 +269,53 @@ export function FindingDetailScreen() {
   }, [id])
 
   const isOwner = !!user && !!finding && user.name === finding.owner
+  const isReviewer = user?.role === 'REVIEWER'
   const canEdit = isOwner && !!finding && EDITABLE.includes(finding.status)
+  const actions = finding ? availableActions(finding.status, isOwner, isReviewer) : []
 
   async function mutate(promise: Promise<FindingDetailData>) {
-    setActionError(null)
     try {
       setFinding(await promise)
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Something went wrong.')
+      toast({ tone: 'error', title: 'Action failed', message: err instanceof ApiError ? err.message : 'Something went wrong.' })
     }
+  }
+
+  async function runTransition(action: string, comment?: string) {
+    if (!finding) return
+    setBusy(true)
+    try {
+      const updated = await transitionFinding(finding.id, action, comment)
+      setFinding(updated)
+      toast({ tone: 'success', title: SUCCESS_MSG[action] ?? 'Finding updated' })
+    } catch (err) {
+      toast({ tone: 'error', title: 'Action failed', message: err instanceof ApiError ? err.message : 'The action could not be completed.' })
+      // Re-sync in case the finding moved on the server — the backend is the source of truth.
+      try {
+        setFinding(await getFinding(finding.id))
+      } catch {
+        // keep current view
+      }
+    } finally {
+      setBusy(false)
+      setReturnOpen(false)
+      setConfirmAction(null)
+    }
+  }
+
+  function onAction(a: WfAction) {
+    if (a.mode === 'comment') setReturnOpen(true)
+    else if (a.mode === 'confirm') setConfirmAction(a)
+    else runTransition(a.action)
   }
 
   async function confirmDelete() {
     setDeleting(true)
-    setActionError(null)
     try {
       await deleteFinding(id!)
       navigate('/')
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Could not delete the finding.')
+      toast({ tone: 'error', title: 'Delete failed', message: err instanceof ApiError ? err.message : 'Could not delete the finding.' })
       setDeleting(false)
       setConfirmOpen(false)
     }
@@ -232,62 +335,59 @@ export function FindingDetailScreen() {
   }
 
   return (
-    <div style={{ maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 18 }}>
-      {actionError ? (
-        <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: 'var(--critical-100)', border: '1px solid var(--critical-500)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-body-sm)', color: 'var(--critical-600)' }}>
-          <Icon name="alert-triangle" size={15} />
-          {actionError}
-        </div>
-      ) : null}
-
-      <SectionCard pad="20px 22px">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="font-mono text-muted" style={{ fontSize: 12 }}>{finding.reference}</span>
-            {finding.asset?.name ? <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--border-strong)' }} /> : null}
-            {finding.asset?.name ? <span className="text-muted" style={{ fontSize: 'var(--fs-caption)' }}>{finding.asset.name}</span> : null}
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-              {canEdit ? <Button size="sm" variant="secondary" onClick={() => navigate(`/findings/${finding.id}/edit`)}>Edit finding</Button> : null}
-              {canEdit ? <Button size="sm" variant="danger" iconLeft="trash" onClick={() => setConfirmOpen(true)}>Delete</Button> : null}
+    <div className="cm-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 312px', gap: 18, alignItems: 'start', maxWidth: 1180 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
+        <SectionCard pad="20px 22px">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="font-mono text-muted" style={{ fontSize: 12 }}>{finding.reference}</span>
+              {finding.asset?.name ? <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--border-strong)' }} /> : null}
+              {finding.asset?.name ? <span className="text-muted" style={{ fontSize: 'var(--fs-caption)' }}>{finding.asset.name}</span> : null}
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                {canEdit ? <Button size="sm" variant="secondary" onClick={() => navigate(`/findings/${finding.id}/edit`)}>Edit finding</Button> : null}
+                {canEdit ? <Button size="sm" variant="danger" iconLeft="trash" onClick={() => setConfirmOpen(true)}>Delete</Button> : null}
+              </div>
+            </div>
+            <h1 className="font-display text-strong" style={{ fontSize: 27, fontWeight: 600, margin: 0, lineHeight: 1.2, letterSpacing: '-0.01em' }}>{finding.title}</h1>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 28, flexWrap: 'wrap', paddingTop: 4 }}>
+              <MetaItem label="Severity"><SeverityBadge level={finding.severity} /></MetaItem>
+              <MetaItem label="CVSS"><CvssScore score={finding.cvss} /></MetaItem>
+              <MetaItem label="Status"><StatusBadge status={finding.status} /></MetaItem>
+              <MetaItem label="Owner"><Avatar name={finding.owner} size={22} /><span style={{ fontSize: 'var(--fs-body-sm)' }}>{finding.owner}</span></MetaItem>
+              <MetaItem label="Created"><span className="font-mono">{formatDate(finding.createdAt)}</span></MetaItem>
+              <MetaItem label="Last updated"><span>{relativeTime(finding.updatedAt)}</span></MetaItem>
             </div>
           </div>
-          <h1 className="font-display text-strong" style={{ fontSize: 27, fontWeight: 600, margin: 0, lineHeight: 1.2, letterSpacing: '-0.01em' }}>{finding.title}</h1>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 28, flexWrap: 'wrap', paddingTop: 4 }}>
-            <MetaItem label="Severity"><SeverityBadge level={finding.severity} /></MetaItem>
-            <MetaItem label="CVSS"><CvssScore score={finding.cvss} /></MetaItem>
-            <MetaItem label="Status"><StatusBadge status={finding.status} /></MetaItem>
-            <MetaItem label="Owner"><Avatar name={finding.owner} size={22} /><span style={{ fontSize: 'var(--fs-body-sm)' }}>{finding.owner}</span></MetaItem>
-            <MetaItem label="Created"><span className="font-mono">{formatDate(finding.createdAt)}</span></MetaItem>
-            <MetaItem label="Last updated"><span>{relativeTime(finding.updatedAt)}</span></MetaItem>
-          </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard title="Description" icon="file-text">
-        <p className="text-body" style={{ margin: 0, fontSize: 'var(--fs-body)', lineHeight: 1.6 }}>
-          {finding.description || <span className="text-faint">No description provided.</span>}
-        </p>
-      </SectionCard>
-
-      {finding.asset ? (
-        <SectionCard title="Affected asset" icon="shield">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px 24px' }}>
-            {([['Asset', finding.asset.name], ['Environment', finding.asset.env], ['Component', finding.asset.component], ['Host', finding.asset.url]] as const).map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span className="cm-eyebrow" style={{ color: 'var(--text-faint)' }}>{k}</span>
-                <span className="font-mono text-strong" style={{ fontSize: 'var(--fs-body-sm)' }}>{v || <span className="text-faint">—</span>}</span>
-              </div>
-            ))}
-          </div>
         </SectionCard>
-      ) : null}
 
-      <ControlMapping
-        finding={finding}
-        canEdit={canEdit}
-        onAdd={(controlId) => mutate(addControlMapping(finding.id, controlId))}
-        onRemove={(controlId) => mutate(removeControlMapping(finding.id, controlId))}
-      />
+        <SectionCard title="Description" icon="file-text">
+          <p className="text-body" style={{ margin: 0, fontSize: 'var(--fs-body)', lineHeight: 1.6 }}>
+            {finding.description || <span className="text-faint">No description provided.</span>}
+          </p>
+        </SectionCard>
+
+        {finding.asset ? (
+          <SectionCard title="Affected asset" icon="shield">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px 24px' }}>
+              {([['Asset', finding.asset.name], ['Environment', finding.asset.env], ['Component', finding.asset.component], ['Host', finding.asset.url]] as const).map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span className="cm-eyebrow" style={{ color: 'var(--text-faint)' }}>{k}</span>
+                  <span className="font-mono text-strong" style={{ fontSize: 'var(--fs-body-sm)' }}>{v || <span className="text-faint">—</span>}</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        ) : null}
+
+        <ControlMapping
+          finding={finding}
+          canEdit={canEdit}
+          onAdd={(controlId) => mutate(addControlMapping(finding.id, controlId))}
+          onRemove={(controlId) => mutate(removeControlMapping(finding.id, controlId))}
+        />
+      </div>
+
+      <StatusActions finding={finding} actions={actions} busy={busy} onAction={onAction} />
 
       <ConfirmDialog
         open={confirmOpen}
@@ -299,6 +399,50 @@ export function FindingDetailScreen() {
         onConfirm={confirmDelete}
         onCancel={() => setConfirmOpen(false)}
       />
+
+      {confirmAction ? (
+        <ConfirmDialog
+          open
+          tone="default"
+          title={CONFIRM_PRESET[confirmAction.action].title}
+          body={CONFIRM_PRESET[confirmAction.action].body}
+          confirmLabel={CONFIRM_PRESET[confirmAction.action].confirmLabel}
+          icon={CONFIRM_PRESET[confirmAction.action].icon}
+          busy={busy}
+          onConfirm={() => runTransition(confirmAction.action)}
+          onCancel={() => setConfirmAction(null)}
+        />
+      ) : null}
+
+      <ReturnDialog open={returnOpen} busy={busy} onConfirm={(comment) => runTransition('return', comment)} onCancel={() => setReturnOpen(false)} />
+    </div>
+  )
+}
+
+function StatusActions({ finding, actions, busy, onAction }: { finding: FindingDetailData; actions: WfAction[]; busy: boolean; onAction: (a: WfAction) => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'sticky', top: 0 }}>
+      <SectionCard title="Status & actions" icon="clipboard-check">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <StatusBadge status={finding.status} />
+            <span className="text-muted" style={{ fontSize: 'var(--fs-caption)' }}>Owned by {finding.owner}</span>
+          </div>
+          <WorkflowTracker status={finding.status} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 2 }}>
+            {actions.map((a) => (
+              <Button key={a.action} variant={a.variant} iconLeft={a.icon} fullWidth disabled={busy} onClick={() => onAction(a)}>
+                {a.label}
+              </Button>
+            ))}
+            {actions.length === 0 ? (
+              <span className="text-faint" style={{ fontSize: 'var(--fs-caption)', textAlign: 'center', padding: '4px 0' }}>
+                No actions available to you in this state.
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </SectionCard>
     </div>
   )
 }

@@ -90,3 +90,7 @@ export const addControlMapping = (findingId: string | number, controlId: number)
   api.post<FindingDetail>(`/findings/${findingId}/controls`, { controlId })
 export const removeControlMapping = (findingId: string | number, controlId: number) =>
   api.del<FindingDetail>(`/findings/${findingId}/controls/${controlId}`)
+
+/** Perform a role-gated workflow transition (PLAN §8). Returns the updated finding. */
+export const transitionFinding = (findingId: string | number, action: string, comment?: string) =>
+  api.post<FindingDetail>(`/findings/${findingId}/transition`, { action, comment })
