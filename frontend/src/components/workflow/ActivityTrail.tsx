@@ -17,6 +17,10 @@ const PHRASE: Record<string, string> = {
   remediate: 'marked remediated',
   accept: 'accepted the risk',
   reopen: 'reopened this finding',
+  mapped: 'mapped a control',
+  unmapped: 'removed a control mapping',
+  edited: 'edited this finding',
+  deleted: 'deleted this finding',
 }
 
 const ICON: Record<string, IconName> = {
@@ -28,6 +32,10 @@ const ICON: Record<string, IconName> = {
   remediate: 'shield-check',
   accept: 'check',
   reopen: 'arrow-up-right',
+  mapped: 'map',
+  unmapped: 'map',
+  edited: 'file-text',
+  deleted: 'trash',
 }
 
 const TINT: Record<string, string> = {
@@ -39,7 +47,15 @@ const TINT: Record<string, string> = {
   submit: 'var(--status-submitted)',
   resubmit: 'var(--status-submitted)',
   reopen: 'var(--status-submitted)',
+  mapped: 'var(--primary)',
+  unmapped: 'var(--text-muted)',
+  edited: 'var(--status-submitted)',
+  deleted: 'var(--critical-600)',
 }
+
+// These actions carry a factual detail in `comment` (control ref, change summary) — shown inline,
+// not as a quote. Quotes are reserved for human workflow comments (e.g. a return reason).
+const DETAIL_ACTIONS = new Set(['mapped', 'unmapped', 'edited'])
 
 export function ActivityTrail({ audit }: { audit: AuditEntry[] }) {
   if (audit.length === 0) {
@@ -72,7 +88,9 @@ export function ActivityTrail({ audit }: { audit: AuditEntry[] }) {
                   </span>
                 ) : null}
               </span>
-              {a.comment ? (
+              {a.comment && DETAIL_ACTIONS.has(a.action) ? (
+                <span className="font-mono" style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>{a.comment}</span>
+              ) : a.comment ? (
                 <span style={{ fontSize: 'var(--fs-body-sm)', color: 'var(--text-muted)', fontStyle: 'italic' }}>“{a.comment}”</span>
               ) : null}
               <span className="font-mono text-faint" style={{ fontSize: 11 }} title={a.timestamp}>{relativeTime(a.timestamp)}</span>

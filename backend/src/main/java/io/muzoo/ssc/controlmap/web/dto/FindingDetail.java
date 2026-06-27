@@ -20,6 +20,7 @@ public record FindingDetail(
         String owner,
         Instant createdAt,
         Instant updatedAt,
+        boolean deleted,
         List<MappedControl> controls,
         List<AuditEntry> audit) {
 

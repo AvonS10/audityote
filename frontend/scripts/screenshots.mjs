@@ -81,6 +81,12 @@ if (EMAIL && PASSWORD) {
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(400)
   await shot('dashboard')
+  // "Show deleted" view — soft-deleted findings retained read-only
+  await page.getByRole('button', { name: 'Deleted' }).click()
+  await page.waitForTimeout(600)
+  await shot('dashboard-deleted')
+  await page.getByRole('button', { name: 'Deleted' }).click()
+  await page.waitForTimeout(300)
   // Filter by severity = critical
   await page.selectOption('select >> nth=1', 'critical')
   await page.waitForTimeout(500)
@@ -102,18 +108,24 @@ if (EMAIL && PASSWORD) {
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(400)
   await shot('finding-detail')
-  // Add-control mapping panel
-  await page.getByRole('button', { name: 'Add control mapping' }).click()
-  await page.waitForTimeout(600)
-  await shot('finding-detail-add')
+  // Add-control mapping panel (only if the first finding is editable by this user/state)
+  const addBtn = page.getByRole('button', { name: 'Add control mapping' })
+  if ((await addBtn.count()) > 0) {
+    await addBtn.click()
+    await page.waitForTimeout(600)
+    await shot('finding-detail-add')
+  }
 
-  // Edit -> delete confirm dialog
-  await page.getByRole('button', { name: 'Edit finding' }).click()
-  await page.waitForLoadState('networkidle')
-  await page.waitForTimeout(300)
-  await page.getByRole('button', { name: 'Delete', exact: true }).click()
-  await page.waitForTimeout(250)
-  await shot('finding-confirm-delete')
+  // Edit -> delete confirm dialog (only if editable)
+  const editBtn = page.getByRole('button', { name: 'Edit finding' })
+  if ((await editBtn.count()) > 0) {
+    await editBtn.click()
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(300)
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+    await page.waitForTimeout(250)
+    await shot('finding-confirm-delete')
+  }
 
   // Activity trail on a finding with real audit history (set up out-of-band; id passed via env).
   if (process.env.SCREENSHOT_FINDING_ID) {
@@ -125,6 +137,13 @@ if (EMAIL && PASSWORD) {
     })
     await page.waitForTimeout(250)
     await shot('finding-activity')
+  }
+
+  // A soft-deleted finding: read-only banner, no actions, trail intact.
+  if (process.env.SCREENSHOT_DELETED_FINDING_ID) {
+    await page.goto(`${BASE}/findings/${process.env.SCREENSHOT_DELETED_FINDING_ID}`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(500)
+    await shot('finding-deleted')
   }
 } else {
   console.log('SEED_ANALYST_* not set — skipping authenticated screenshots')

@@ -25,9 +25,11 @@ import io.muzoo.ssc.controlmap.web.dto.TransitionRequest;
 import io.muzoo.ssc.controlmap.workflow.WorkflowAction;
 import java.math.BigDecimal;
 import java.time.Year;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
@@ -70,10 +72,10 @@ public class FindingService {
     }
 
     public PagedResponse<FindingSummary> list(String status, String severity, String framework, String q,
-                                              int page, int size) {
+                                              boolean deleted, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
         Page<Finding> result = findings.search(
-                parseStatus(status), parseSeverity(severity), normalizeQuery(q), blankToNull(framework), pageable);
+                parseStatus(status), parseSeverity(severity), normalizeQuery(q), blankToNull(framework), deleted, pageable);
 
         Map<Long, List<ControlRef>> controlsByFinding = loadControlRefs(result.getContent());
         List<FindingSummary> summaries = result.getContent().stream()
@@ -82,9 +84,9 @@ public class FindingService {
         return PagedResponse.of(result, summaries);
     }
 
-    /** All findings (no paging) as summaries, newest first — backs report export (#14). */
+    /** All active findings (no paging) as summaries, newest first — backs report export (#14). */
     public List<FindingSummary> listAllForExport() {
-        List<Finding> all = findings.findAll(Sort.by(Sort.Direction.DESC, "updatedAt"));
+        List<Finding> all = findings.findByDeletedAtIsNull(Sort.by(Sort.Direction.DESC, "updatedAt"));
         Map<Long, List<ControlRef>> controlsByFinding = loadControlRefs(all);
         return all.stream()
                 .map(f -> mapper.toSummary(f, controlsByFinding.getOrDefault(f.getId(), List.of())))
@@ -105,8 +107,9 @@ public class FindingService {
                                 Collectors.toList())));
     }
 
+    /** Detail view — serves soft-deleted findings too (read-only), so their audit trail stays reviewable. */
     public FindingDetail get(Long id) {
-        return detail(requireFinding(id));
+        return detail(requireExistingFinding(id));
     }
 
     @Transactional
@@ -125,16 +128,34 @@ public class FindingService {
         requireOwner(finding, currentUserEmail);
         requireEditable(finding);
 
+        // Snapshot before applying, so we can record exactly what changed.
+        String oldTitle = finding.getTitle();
+        String oldDescription = finding.getDescription();
+        Severity oldSeverity = finding.getSeverity();
+        BigDecimal oldCvss = finding.getCvssScore();
+        Asset oldAsset = finding.getAsset();
+        FindingStatus oldStatus = finding.getStatus();
+
+        Severity newSeverity = resolveSeverity(request.severity(), request.cvss());
+        Asset newAsset = toAsset(request.asset());
         finding.setTitle(request.title());
         finding.setDescription(request.description());
-        finding.setSeverity(resolveSeverity(request.severity(), request.cvss()));
+        finding.setSeverity(newSeverity);
         finding.setCvssScore(request.cvss());
-        finding.setAsset(toAsset(request.asset()));
+        finding.setAsset(newAsset);
         // §8: the first edit of an OPEN finding moves it to IN_PROGRESS.
         if (finding.getStatus() == FindingStatus.OPEN) {
             finding.setStatus(FindingStatus.IN_PROGRESS);
         }
         Finding saved = findings.save(finding);
+
+        String summary = editSummary(oldTitle, oldDescription, oldSeverity, oldCvss, oldAsset, finding);
+        boolean statusChanged = oldStatus != finding.getStatus();
+        if (!summary.isEmpty() || statusChanged) {
+            events.publishEvent(new FindingAuditEvent(saved, finding.getOwner(), "edited",
+                    statusChanged ? oldStatus : null, statusChanged ? finding.getStatus() : null,
+                    summary.isEmpty() ? null : summary));
+        }
         return detail(saved);
     }
 
@@ -143,7 +164,10 @@ public class FindingService {
         Finding finding = requireFinding(id);
         requireOwner(finding, currentUserEmail);
         requireEditable(finding);
-        findings.delete(finding); // child mappings/audit rows cascade at the DB (ON DELETE CASCADE)
+        // Soft delete: retain the row (and its mappings + audit trail) and record the deletion.
+        finding.markDeleted();
+        Finding saved = findings.save(finding);
+        events.publishEvent(new FindingAuditEvent(saved, finding.getOwner(), "deleted", null, null, null));
     }
 
     @Transactional
@@ -166,6 +190,7 @@ public class FindingService {
             mapping.setAiModel(request.aiModel());
         }
         mappings.save(mapping);
+        events.publishEvent(new FindingAuditEvent(finding, finding.getOwner(), "mapped", null, null, controlRef(control)));
         return detail(finding);
     }
 
@@ -177,7 +202,9 @@ public class FindingService {
 
         FindingControlMapping mapping = mappings.findByFinding_IdAndControl_Id(findingId, controlId)
                 .orElseThrow(() -> new NotFoundException("That control is not mapped to this finding."));
+        String ref = controlRef(mapping.getControl());
         mappings.delete(mapping);
+        events.publishEvent(new FindingAuditEvent(finding, finding.getOwner(), "unmapped", null, null, ref));
         return detail(finding);
     }
 
@@ -211,7 +238,17 @@ public class FindingService {
         }
     }
 
+    /** Loads a finding for mutation: a soft-deleted finding is treated as gone (404). */
     private Finding requireFinding(Long id) {
+        Finding finding = requireExistingFinding(id);
+        if (finding.isDeleted()) {
+            throw new NotFoundException("Finding not found: " + id);
+        }
+        return finding;
+    }
+
+    /** Loads a finding regardless of soft-delete state — for the read-only detail view. */
+    private Finding requireExistingFinding(Long id) {
         return findings.findById(id).orElseThrow(() -> new NotFoundException("Finding not found: " + id));
     }
 
@@ -250,6 +287,51 @@ public class FindingService {
         return auditLog.findByFinding_IdOrderByTimestampAscIdAsc(findingId).stream()
                 .map(mapper::toAuditEntry)
                 .toList();
+    }
+
+    /** Human reference for an audited mapping change, e.g. {@code owasp:A05 — Security misconfiguration}. */
+    private static String controlRef(Control control) {
+        return control.getFramework().getSlug() + ":" + control.getCode() + " — " + control.getTitle();
+    }
+
+    /** Summarises what an edit changed (for the audit comment); severity/CVSS show their old→new values. */
+    private static String editSummary(String oldTitle, String oldDescription, Severity oldSeverity,
+                                      BigDecimal oldCvss, Asset oldAsset, Finding now) {
+        List<String> changes = new ArrayList<>();
+        if (!Objects.equals(oldTitle, now.getTitle())) {
+            changes.add("title");
+        }
+        if (!Objects.equals(oldDescription, now.getDescription())) {
+            changes.add("description");
+        }
+        if (oldSeverity != now.getSeverity()) {
+            changes.add("severity " + FindingMapper.severityToWire(oldSeverity) + "→" + FindingMapper.severityToWire(now.getSeverity()));
+        }
+        if (!cvssEqual(oldCvss, now.getCvssScore())) {
+            changes.add("CVSS " + cvssText(oldCvss) + "→" + cvssText(now.getCvssScore()));
+        }
+        if (assetChanged(oldAsset, now.getAsset())) {
+            changes.add("asset");
+        }
+        return String.join(", ", changes);
+    }
+
+    private static boolean cvssEqual(BigDecimal a, BigDecimal b) {
+        return (a == null || b == null) ? a == b : a.compareTo(b) == 0;
+    }
+
+    private static String cvssText(BigDecimal value) {
+        return value == null ? "none" : value.toPlainString();
+    }
+
+    private static boolean assetChanged(Asset a, Asset b) {
+        if (a == null || b == null) {
+            return a != b;
+        }
+        return !Objects.equals(a.getName(), b.getName())
+                || !Objects.equals(a.getEnv(), b.getEnv())
+                || !Objects.equals(a.getComponent(), b.getComponent())
+                || !Objects.equals(a.getUrl(), b.getUrl());
     }
 
     /** Severity is derived from CVSS when present (CVSS 3.x bands, §16 #6); otherwise it is required. */

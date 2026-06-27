@@ -49,6 +49,7 @@ public class FindingMapper {
                 finding.getOwner().getName(),
                 finding.getCreatedAt(),
                 finding.getUpdatedAt(),
+                finding.isDeleted(),
                 controls,
                 audit);
     }

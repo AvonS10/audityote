@@ -1,8 +1,12 @@
 package io.muzoo.ssc.controlmap.web;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -83,6 +87,56 @@ class AuditTrailTest {
                 .andExpect(jsonPath("$.audit[?(@.action=='submit')].fromStatus").value(hasItem("open")))
                 .andExpect(jsonPath("$.audit[?(@.action=='submit')].toStatus").value(hasItem("submitted")))
                 .andExpect(jsonPath("$.audit[?(@.action=='submit')].actor").value(hasItem("Owner")));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER)
+    void mappingChangesAreAudited() throws Exception {
+        Finding f = findings.save(new Finding("CM-AUD-2", "Finding", "d",
+                Severity.HIGH, new BigDecimal("7.5"), owner, new Asset("sys", null, null, null)));
+        findings.save(f);
+        mockMvc.perform(post("/api/findings/" + f.getId() + "/controls").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"controlId\":" + control.getId() + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.audit[?(@.action=='mapped')].comment").value(hasItem(containsString("owasp:A05"))));
+        mockMvc.perform(delete("/api/findings/" + f.getId() + "/controls/" + control.getId()).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.audit[?(@.action=='unmapped')].comment").value(hasItem(containsString("owasp:A05"))));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER)
+    void editIsAuditedWithChangedFieldsAndImplicitTransition() throws Exception {
+        Finding f = findings.save(new Finding("CM-AUD-3", "Old title", "d",
+                Severity.LOW, null, owner, new Asset("sys", null, null, null)));
+        f.setStatus(FindingStatus.OPEN);
+        findings.save(f);
+        // Change title + CVSS (→ severity low→critical); editing OPEN also moves it to IN_PROGRESS.
+        mockMvc.perform(put("/api/findings/" + f.getId()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"New title\",\"description\":\"d\",\"cvss\":9.5,\"asset\":{\"name\":\"sys\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("in-progress"))
+                .andExpect(jsonPath("$.audit[?(@.action=='edited')].fromStatus").value(hasItem("open")))
+                .andExpect(jsonPath("$.audit[?(@.action=='edited')].toStatus").value(hasItem("in-progress")))
+                .andExpect(jsonPath("$.audit[?(@.action=='edited')].comment").value(hasItem(containsString("severity low→critical"))));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER)
+    void deleteIsAuditedAndFindingBecomesReadOnly() throws Exception {
+        Finding f = findings.save(new Finding("CM-AUD-4", "Finding", "d",
+                Severity.HIGH, new BigDecimal("7.5"), owner, new Asset("sys", null, null, null)));
+        f.setStatus(FindingStatus.OPEN);
+        findings.save(f);
+        mockMvc.perform(delete("/api/findings/" + f.getId()).with(csrf())).andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/findings/" + f.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deleted").value(true))
+                .andExpect(jsonPath("$.audit[?(@.action=='deleted')].actor").value(hasItem("Owner")));
+        // A soft-deleted finding rejects further mutations as "not found".
+        mockMvc.perform(post("/api/findings/" + f.getId() + "/controls").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"controlId\":" + control.getId() + "}"))
+                .andExpect(status().isNotFound());
     }
 
     @Test

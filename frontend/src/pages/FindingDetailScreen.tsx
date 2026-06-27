@@ -271,8 +271,8 @@ export function FindingDetailScreen() {
 
   const isOwner = !!user && !!finding && user.name === finding.owner
   const isReviewer = user?.role === 'REVIEWER'
-  const canEdit = isOwner && !!finding && EDITABLE.includes(finding.status)
-  const actions = finding ? availableActions(finding.status, isOwner, isReviewer) : []
+  const canEdit = isOwner && !!finding && !finding.deleted && EDITABLE.includes(finding.status)
+  const actions = finding && !finding.deleted ? availableActions(finding.status, isOwner, isReviewer) : []
 
   async function mutate(promise: Promise<FindingDetailData>) {
     try {
@@ -338,6 +338,13 @@ export function FindingDetailScreen() {
   return (
     <div className="cm-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 312px', gap: 18, alignItems: 'start', maxWidth: 1180 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
+        {finding.deleted ? (
+          <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px', background: 'var(--critical-100)', border: '1px solid var(--critical-500)', borderRadius: 'var(--radius-md)', color: 'var(--critical-600)', fontSize: 'var(--fs-body-sm)' }}>
+            <Icon name="trash" size={15} />
+            <span>This finding has been deleted. It is retained read-only for audit.</span>
+          </div>
+        ) : null}
+
         <SectionCard pad="20px 22px">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -397,7 +404,7 @@ export function FindingDetailScreen() {
       <ConfirmDialog
         open={confirmOpen}
         title="Delete finding?"
-        body="This permanently deletes the finding along with its control mappings and audit history. This action cannot be undone."
+        body="This removes the finding from the active list. It is kept read-only for audit — viewable any time under “Show deleted” — and its control mappings and full history are preserved."
         confirmLabel="Delete finding"
         icon="trash"
         busy={deleting}

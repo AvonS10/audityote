@@ -28,12 +28,15 @@ public interface FindingControlMappingRepository extends JpaRepository<FindingCo
             """)
     List<FindingControlMapping> findWithControlByFindingIds(@Param("findingIds") Collection<Long> findingIds);
 
-    /** All mappings (with their finding) for the controls of one framework — backs coverage rollup (#13). */
+    /**
+     * All mappings (with their finding) for the controls of one framework — backs coverage rollup
+     * (#13). Excludes soft-deleted findings so they don't inflate coverage counts (#16c).
+     */
     @Query("""
             select m from FindingControlMapping m
-            join fetch m.finding
+            join fetch m.finding f
             join fetch m.control c
-            where c.framework.slug = :slug
+            where c.framework.slug = :slug and f.deletedAt is null
             """)
     List<FindingControlMapping> findWithFindingByFrameworkSlug(@Param("slug") String slug);
 }

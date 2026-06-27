@@ -268,7 +268,7 @@ export function FindingForm() {
       <ConfirmDialog
         open={confirmOpen}
         title="Delete finding?"
-        body="This permanently deletes the finding along with its control mappings and audit history. This action cannot be undone."
+        body="This removes the finding from the active list. It is kept read-only for audit — viewable any time under “Show deleted” — and its control mappings and full history are preserved."
         confirmLabel="Delete finding"
         icon="trash"
         busy={deleting}

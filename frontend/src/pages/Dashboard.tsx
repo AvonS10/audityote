@@ -69,6 +69,8 @@ export function Dashboard() {
   const setFilter = (key: keyof FindingFilters) => (value: string) =>
     setFilters((f) => ({ ...f, [key]: value || undefined }))
 
+  const showDeleted = !!filters.deleted
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
@@ -85,11 +87,19 @@ export function Dashboard() {
         <Select value={filters.status ?? ''} onChange={(e) => setFilter('status')(e.target.value)} options={STATUS_OPTIONS} />
         <Select value={filters.severity ?? ''} onChange={(e) => setFilter('severity')(e.target.value)} options={SEVERITY_OPTIONS} />
         <Select value={filters.framework ?? ''} onChange={(e) => setFilter('framework')(e.target.value)} options={frameworkOptions} />
+        <Button
+          variant={showDeleted ? 'primary' : 'secondary'}
+          iconLeft="trash"
+          onClick={() => setFilters((f) => ({ ...f, deleted: f.deleted ? undefined : true }))}
+          title="Show deleted findings (retained read-only for audit)"
+        >
+          Deleted
+        </Button>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="text-muted" style={{ fontSize: 'var(--fs-caption)', fontVariantNumeric: 'tabular-nums' }}>
-            <b className="text-strong" style={{ fontWeight: 600 }}>{total}</b> findings
+            <b className="text-strong" style={{ fontWeight: 600 }}>{total}</b> {showDeleted ? 'deleted' : 'findings'}
           </span>
-          <ExportMenu csvPath={findingsReportPath('csv')} pdfPath={findingsReportPath('pdf')} disabled={total === 0} />
+          <ExportMenu csvPath={findingsReportPath('csv')} pdfPath={findingsReportPath('pdf')} disabled={total === 0 || showDeleted} />
           <Button variant="primary" iconLeft="plus" onClick={() => navigate('/findings/new')}>
             New finding
           </Button>
@@ -101,7 +111,7 @@ export function Dashboard() {
       ) : status === 'loading' && findings.length === 0 ? (
         <TableSkeleton />
       ) : (
-        <FindingsTable rows={findings} onRowClick={(id) => navigate(`/findings/${id}`)} onClear={() => setFilters({})} />
+        <FindingsTable rows={findings} deleted={showDeleted} onRowClick={(id) => navigate(`/findings/${id}`)} onClear={() => setFilters({})} />
       )}
     </div>
   )
@@ -146,7 +156,7 @@ function compare(a: FindingSummary, b: FindingSummary, key: string): number {
   }
 }
 
-function FindingsTable({ rows, onRowClick, onClear }: { rows: FindingSummary[]; onRowClick: (id: number) => void; onClear: () => void }) {
+function FindingsTable({ rows, deleted = false, onRowClick, onClear }: { rows: FindingSummary[]; deleted?: boolean; onRowClick: (id: number) => void; onClear: () => void }) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'severity', dir: 'asc' })
   const toggle = (key: string) => setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }))
 
@@ -199,7 +209,7 @@ function FindingsTable({ rows, onRowClick, onClear }: { rows: FindingSummary[]; 
           </thead>
           <tbody>
             {sorted.map((f) => (
-              <FindingRow key={f.id} f={f} onClick={() => onRowClick(f.id)} />
+              <FindingRow key={f.id} f={f} deleted={deleted} onClick={() => onRowClick(f.id)} />
             ))}
           </tbody>
         </table>
@@ -208,8 +218,12 @@ function FindingsTable({ rows, onRowClick, onClear }: { rows: FindingSummary[]; 
         <div style={{ padding: 40, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
           <Icon name="search" size={22} color="var(--text-faint)" />
           <div>
-            <p className="text-strong" style={{ fontWeight: 600, margin: 0, fontSize: 'var(--fs-body-sm)' }}>No findings match your filters</p>
-            <p className="text-muted" style={{ margin: '4px 0 0', fontSize: 'var(--fs-body-sm)' }}>Try removing a filter or clearing your search.</p>
+            <p className="text-strong" style={{ fontWeight: 600, margin: 0, fontSize: 'var(--fs-body-sm)' }}>
+              {deleted ? 'No deleted findings' : 'No findings match your filters'}
+            </p>
+            <p className="text-muted" style={{ margin: '4px 0 0', fontSize: 'var(--fs-body-sm)' }}>
+              {deleted ? 'Deleted findings are retained here read-only for audit.' : 'Try removing a filter or clearing your search.'}
+            </p>
           </div>
           <Button variant="secondary" iconLeft="x" onClick={onClear}>
             Clear filters
@@ -220,7 +234,7 @@ function FindingsTable({ rows, onRowClick, onClear }: { rows: FindingSummary[]; 
   )
 }
 
-function FindingRow({ f, onClick }: { f: FindingSummary; onClick: () => void }) {
+function FindingRow({ f, deleted = false, onClick }: { f: FindingSummary; deleted?: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false)
   const td = { padding: '0 16px', height: 'var(--row-h)', borderBottom: '1px solid var(--border-subtle)', verticalAlign: 'middle' } as const
   return (
@@ -228,12 +242,20 @@ function FindingRow({ f, onClick }: { f: FindingSummary; onClick: () => void }) 
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ background: hover ? 'var(--surface-inset)' : 'var(--surface-card)', transition: 'background 90ms ease', cursor: 'pointer' }}
+      style={{ background: hover ? 'var(--surface-inset)' : 'var(--surface-card)', transition: 'background 90ms ease', cursor: 'pointer', opacity: deleted ? 0.72 : 1 }}
     >
       <td style={td}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-          <span className="text-strong" style={{ fontSize: 'var(--fs-body-sm)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360 }}>
-            {f.title}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span className="text-strong" style={{ fontSize: 'var(--fs-body-sm)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 320 }}>
+              {f.title}
+            </span>
+            {deleted ? (
+              <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, height: 18, padding: '0 7px', borderRadius: 'var(--radius-xs)', background: 'var(--critical-100)', color: 'var(--critical-600)', fontSize: 'var(--fs-micro)', fontWeight: 600 }}>
+                <Icon name="trash" size={11} color="var(--critical-600)" />
+                Deleted
+              </span>
+            ) : null}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'var(--text-faint)' }}>
             <span className="font-mono">{f.reference}</span>

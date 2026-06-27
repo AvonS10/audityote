@@ -31,6 +31,8 @@ export interface FindingFilters {
   severity?: string
   framework?: string
   q?: string
+  /** When true, list soft-deleted findings (the "Show deleted" view) instead of active ones. */
+  deleted?: boolean
   size?: number
 }
 
@@ -40,6 +42,7 @@ export function getFindings(filters: FindingFilters) {
   if (filters.severity) p.set('severity', filters.severity)
   if (filters.framework) p.set('framework', filters.framework)
   if (filters.q) p.set('q', filters.q)
+  if (filters.deleted) p.set('deleted', 'true')
   p.set('size', String(filters.size ?? 100))
   return api.get<PagedResponse<FindingSummary>>(`/findings?${p.toString()}`)
 }
@@ -79,6 +82,7 @@ export interface FindingDetail {
   owner: string
   createdAt: string
   updatedAt: string
+  deleted: boolean
   controls: MappedControl[]
   audit: AuditEntry[]
 }

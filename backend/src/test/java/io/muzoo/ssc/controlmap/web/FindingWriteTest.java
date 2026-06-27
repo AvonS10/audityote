@@ -130,10 +130,22 @@ class FindingWriteTest {
 
     @Test
     @WithMockUser(username = OWNER)
-    void deleteByOwnerThenGoneIs404() throws Exception {
+    void deleteSoftDeletesKeepingItReviewableButGoneFromList() throws Exception {
         Finding f = seed("CM-TEST-W104", FindingStatus.OPEN);
         mockMvc.perform(delete("/api/findings/" + f.getId()).with(csrf())).andExpect(status().isNoContent());
-        mockMvc.perform(get("/api/findings/" + f.getId())).andExpect(status().isNotFound());
+        // Soft-deleted: still retrievable read-only (so its audit trail survives), now flagged deleted.
+        mockMvc.perform(get("/api/findings/" + f.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deleted").value(true));
+        // ...excluded from the active findings list...
+        mockMvc.perform(get("/api/findings").param("q", "CM-TEST-W104"))
+                .andExpect(jsonPath("$.totalElements").value(0));
+        // ...but surfaced by the "show deleted" view.
+        mockMvc.perform(get("/api/findings").param("deleted", "true").param("q", "CM-TEST-W104"))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].reference").value("CM-TEST-W104"));
+        // ...and further mutations treat it as gone.
+        mockMvc.perform(delete("/api/findings/" + f.getId()).with(csrf())).andExpect(status().isNotFound());
     }
 
     @Test

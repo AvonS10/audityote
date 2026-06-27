@@ -64,6 +64,10 @@ public class Finding {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Soft-delete marker: null = active; non-null = deleted at this instant (the row is retained). */
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     protected Finding() {
         // JPA
     }
@@ -165,5 +169,18 @@ public class Finding {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    /** Marks this finding deleted (soft delete) — the row and its audit trail are retained. */
+    public void markDeleted() {
+        this.deletedAt = Instant.now();
     }
 }
