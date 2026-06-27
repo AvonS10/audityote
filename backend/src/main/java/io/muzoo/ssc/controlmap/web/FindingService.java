@@ -19,6 +19,8 @@ import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
 import io.muzoo.ssc.controlmap.web.dto.FindingRequest;
 import io.muzoo.ssc.controlmap.web.dto.FindingSummary;
 import io.muzoo.ssc.controlmap.web.dto.PagedResponse;
+import io.muzoo.ssc.controlmap.web.dto.TransitionRequest;
+import io.muzoo.ssc.controlmap.workflow.WorkflowAction;
 import java.math.BigDecimal;
 import java.time.Year;
 import java.util.List;
@@ -47,14 +49,17 @@ public class FindingService {
     private final ControlRepository controls;
     private final UserRepository users;
     private final FindingMapper mapper;
+    private final WorkflowStateMachine workflow;
 
     public FindingService(FindingRepository findings, FindingControlMappingRepository mappings,
-                          ControlRepository controls, UserRepository users, FindingMapper mapper) {
+                          ControlRepository controls, UserRepository users, FindingMapper mapper,
+                          WorkflowStateMachine workflow) {
         this.findings = findings;
         this.mappings = mappings;
         this.controls = controls;
         this.users = users;
         this.mapper = mapper;
+        this.workflow = workflow;
     }
 
     public PagedResponse<FindingSummary> list(String status, String severity, String framework, String q,
@@ -166,6 +171,34 @@ public class FindingService {
                 .orElseThrow(() -> new NotFoundException("That control is not mapped to this finding."));
         mappings.delete(mapping);
         return mapper.toDetail(finding, mappedControls(findingId));
+    }
+
+    /**
+     * Performs a role-gated workflow transition (PLAN §8) through the {@link WorkflowStateMachine}:
+     * the state machine validates legality, actor/role + separation of duties, the required comment,
+     * and the submit guard, then yields the new status. (The audit-log entry is wired in chunk #16.)
+     */
+    @Transactional
+    public FindingDetail transition(Long id, TransitionRequest request, String currentUserEmail) {
+        WorkflowAction action = parseAction(request.action());
+        Finding finding = requireFinding(id);
+        User actor = currentUser(currentUserEmail);
+        boolean actorIsOwner = finding.getOwner().getEmail().equalsIgnoreCase(currentUserEmail);
+        long mappedControlCount = mappings.countByFinding_Id(id);
+
+        FindingStatus target = workflow.next(
+                finding.getStatus(), action, request.comment(), actorIsOwner, actor.getRole(), mappedControlCount);
+        finding.setStatus(target);
+        Finding saved = findings.save(finding);
+        return mapper.toDetail(saved, mappedControls(id));
+    }
+
+    private WorkflowAction parseAction(String value) {
+        try {
+            return WorkflowAction.fromWire(value);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Unknown action: " + value);
+        }
     }
 
     private Finding requireFinding(Long id) {

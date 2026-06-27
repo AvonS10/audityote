@@ -17,6 +17,9 @@ public interface FindingControlMappingRepository extends JpaRepository<FindingCo
 
     boolean existsByFinding_IdAndControl_Id(Long findingId, Long controlId);
 
+    /** How many controls are mapped to a finding — backs the submit guard (≥1 control, #15). */
+    long countByFinding_Id(Long findingId);
+
     /** Batch-fetch mappings (with control + framework) for several findings — avoids an N+1 in lists. */
     @Query("""
             select m from FindingControlMapping m

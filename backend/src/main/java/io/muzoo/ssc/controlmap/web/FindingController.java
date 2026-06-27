@@ -5,6 +5,7 @@ import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
 import io.muzoo.ssc.controlmap.web.dto.FindingRequest;
 import io.muzoo.ssc.controlmap.web.dto.FindingSummary;
 import io.muzoo.ssc.controlmap.web.dto.PagedResponse;
+import io.muzoo.ssc.controlmap.web.dto.TransitionRequest;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import org.springframework.http.HttpStatus;
@@ -74,5 +75,10 @@ public class FindingController {
     @DeleteMapping("/findings/{id}/controls/{controlId}")
     public FindingDetail removeControl(@PathVariable Long id, @PathVariable Long controlId, Principal principal) {
         return findingService.removeControl(id, controlId, principal.getName());
+    }
+
+    @PostMapping("/findings/{id}/transition")
+    public FindingDetail transition(@PathVariable Long id, @Valid @RequestBody TransitionRequest request, Principal principal) {
+        return findingService.transition(id, request, principal.getName());
     }
 }
