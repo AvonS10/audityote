@@ -6,7 +6,7 @@ import { relativeTime } from '../lib/time'
 import { Avatar } from '../components/Avatar'
 import { ExportMenu } from '../components/ExportMenu'
 import { Icon } from '../components/Icon'
-import { findingsReportPath } from '../lib/reports'
+import { auditReportPath, findingsReportPath } from '../lib/reports'
 import { Button } from '../components/ui/Button'
 import { SearchInput } from '../components/ui/SearchInput'
 import { Select } from '../components/ui/Select'
@@ -99,7 +99,12 @@ export function Dashboard() {
           <span className="text-muted" style={{ fontSize: 'var(--fs-caption)', fontVariantNumeric: 'tabular-nums' }}>
             <b className="text-strong" style={{ fontWeight: 600 }}>{total}</b> {showDeleted ? 'deleted' : 'findings'}
           </span>
-          <ExportMenu csvPath={findingsReportPath('csv')} pdfPath={findingsReportPath('pdf')} disabled={total === 0 || showDeleted} />
+          <ExportMenu
+            reports={[
+              { label: 'Findings register', csvPath: findingsReportPath('csv'), pdfPath: findingsReportPath('pdf') },
+              { label: 'Audit log', csvPath: auditReportPath('csv'), pdfPath: auditReportPath('pdf') },
+            ]}
+          />
           <Button variant="primary" iconLeft="plus" onClick={() => navigate('/findings/new')}>
             New finding
           </Button>

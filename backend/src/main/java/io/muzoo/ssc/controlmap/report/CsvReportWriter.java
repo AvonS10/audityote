@@ -7,10 +7,14 @@ import org.springframework.stereotype.Component;
 /**
  * RFC 4180 CSV writer: CRLF line endings, fields containing a comma, quote or newline are wrapped in
  * double quotes with embedded quotes doubled. Defensive quoting also neutralises CSV "formula
- * injection" (a field starting with = + - @) by quoting it, so spreadsheets treat it as text.
+ * injection" (a field starting with = + - @) by quoting it, so spreadsheets treat it as text. A
+ * leading UTF-8 BOM lets spreadsheets detect the encoding so non-ASCII text isn't mangled.
  */
 @Component
 public class CsvReportWriter implements ReportWriter {
+
+    /** UTF-8 byte-order mark — makes Excel &amp; co. read the file as UTF-8 instead of the system locale. */
+    private static final char BOM = (char) 0xFEFF; // U+FEFF
 
     @Override
     public ReportFormat format() {
@@ -20,6 +24,7 @@ public class CsvReportWriter implements ReportWriter {
     @Override
     public byte[] write(ReportData data) {
         StringBuilder out = new StringBuilder();
+        out.append(BOM);
         appendRow(out, data.headers());
         for (List<String> row : data.rows()) {
             appendRow(out, row);

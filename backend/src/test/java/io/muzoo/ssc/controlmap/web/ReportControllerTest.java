@@ -2,12 +2,14 @@ package io.muzoo.ssc.controlmap.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import io.muzoo.ssc.controlmap.domain.Asset;
 import io.muzoo.ssc.controlmap.domain.Control;
 import io.muzoo.ssc.controlmap.domain.Finding;
@@ -94,7 +96,7 @@ class ReportControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(header().string("Content-Disposition", containsString("coverage-owasp-")))
-                .andExpect(content().string(startsWith("Code,Control,Findings,Highest severity,At risk")))
+                .andExpect(content().string(containsString("Code,Control,Findings,Highest severity,At risk")))
                 .andExpect(content().string(containsString("A05")));
     }
 
@@ -141,6 +143,33 @@ class ReportControllerTest {
     void unknownFrameworkIs404() throws Exception {
         mockMvc.perform(get("/api/reports/coverage").param("framework", "nope").param("format", "csv"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = ANALYST)
+    void auditLogCsvIncludesEvents() throws Exception {
+        // Create via the API so an audit "created" event is recorded for the new finding.
+        String created = mockMvc.perform(post("/api/findings").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Audit export probe\",\"severity\":\"high\",\"asset\":{\"name\":\"x\"}}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String reference = JsonPath.read(created, "$.reference");
+
+        mockMvc.perform(get("/api/reports/audit").param("format", "csv"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(header().string("Content-Disposition", containsString("audit-log-")))
+                .andExpect(content().string(containsString("Timestamp,Finding,Title,Actor,Action,From,To,Detail")))
+                .andExpect(content().string(containsString(reference)))
+                .andExpect(content().string(containsString("created")));
+    }
+
+    @Test
+    @WithMockUser(username = ANALYST)
+    void auditLogPdfDownloads() throws Exception {
+        mockMvc.perform(get("/api/reports/audit").param("format", "pdf"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition", containsString("audit-log-")));
     }
 
     @Test

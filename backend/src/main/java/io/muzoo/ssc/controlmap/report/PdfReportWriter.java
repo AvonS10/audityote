@@ -221,8 +221,9 @@ public class PdfReportWriter implements ReportWriter {
     }
 
     /**
-     * Restricts text to the printable WinAnsi range the Standard-14 fonts can encode — ASCII plus
-     * Latin-1 (so the middle-dot separator and accented names render); anything else becomes '?'.
+     * Maps text to what the Standard-14 fonts can encode: printable ASCII + Latin-1 pass through;
+     * common typographic punctuation (em/en dashes, the → arrow, smart quotes, ellipsis) is
+     * transliterated to ASCII so it renders cleanly instead of as '?'; anything else becomes '?'.
      */
     private static String sanitize(String value) {
         if (value == null || value.isEmpty()) {
@@ -231,8 +232,21 @@ public class PdfReportWriter implements ReportWriter {
         StringBuilder sb = new StringBuilder(value.length());
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
-            boolean printable = (c >= 0x20 && c <= 0x7E) || (c >= 0xA0 && c <= 0xFF);
-            sb.append(printable ? c : '?');
+            if (c == 0x2014 || c == 0x2013 || c == 0x2012 || c == 0x2212) {
+                sb.append('-');               // em / en / figure dash, minus sign
+            } else if (c == 0x2192) {
+                sb.append("->");              // right arrow (edit summaries: "low→critical")
+            } else if (c == 0x2018 || c == 0x2019 || c == 0x201A) {
+                sb.append('\'');              // smart single quotes
+            } else if (c == 0x201C || c == 0x201D || c == 0x201E) {
+                sb.append('"');               // smart double quotes
+            } else if (c == 0x2026) {
+                sb.append("...");             // ellipsis
+            } else if ((c >= 0x20 && c <= 0x7E) || (c >= 0xA0 && c <= 0xFF)) {
+                sb.append(c);
+            } else {
+                sb.append('?');
+            }
         }
         return sb.toString();
     }

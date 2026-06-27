@@ -38,6 +38,11 @@ public class ReportController {
         return download(reportService.coverageReport(framework, format));
     }
 
+    @GetMapping("/audit")
+    public ResponseEntity<byte[]> audit(@RequestParam(value = "format", defaultValue = "csv") String format) {
+        return download(reportService.auditReport(format));
+    }
+
     private static ResponseEntity<byte[]> download(RenderedReport report) {
         ContentDisposition disposition = ContentDisposition.attachment().filename(report.filename()).build();
         return ResponseEntity.ok()

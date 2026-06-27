@@ -14,6 +14,8 @@ export const findingsReportPath = (format: ReportFormat = 'csv') => `/reports/fi
 export const coverageReportPath = (framework: string, format: ReportFormat = 'csv') =>
   `/reports/coverage?framework=${encodeURIComponent(framework)}&format=${format}`
 
+export const auditReportPath = (format: ReportFormat = 'csv') => `/reports/audit?format=${format}`
+
 export async function downloadReport(path: string): Promise<void> {
   const res = await fetch(`${BASE}${path}`, { credentials: 'include' })
   if (!res.ok) {

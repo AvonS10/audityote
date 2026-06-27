@@ -81,6 +81,12 @@ if (EMAIL && PASSWORD) {
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(400)
   await shot('dashboard')
+  // Export menu (Findings register + Audit log)
+  await page.getByRole('button', { name: 'Export', exact: true }).click()
+  await page.waitForTimeout(200)
+  await shot('dashboard-export-menu')
+  await page.getByRole('button', { name: 'Export', exact: true }).click() // close the menu
+  await page.waitForTimeout(150)
   // "Show deleted" view — soft-deleted findings retained read-only
   await page.getByRole('button', { name: 'Deleted' }).click()
   await page.waitForTimeout(600)

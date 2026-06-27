@@ -1,10 +1,12 @@
 package io.muzoo.ssc.controlmap.web;
 
+import io.muzoo.ssc.controlmap.domain.AuditLog;
 import io.muzoo.ssc.controlmap.report.ReportData;
 import io.muzoo.ssc.controlmap.report.ReportData.Column;
 import io.muzoo.ssc.controlmap.report.ReportFactory;
 import io.muzoo.ssc.controlmap.report.ReportFormat;
 import io.muzoo.ssc.controlmap.report.RenderedReport;
+import io.muzoo.ssc.controlmap.repository.AuditLogRepository;
 import io.muzoo.ssc.controlmap.repository.FrameworkRepository;
 import io.muzoo.ssc.controlmap.web.dto.ControlRef;
 import io.muzoo.ssc.controlmap.web.dto.CoverageRow;
@@ -42,17 +44,28 @@ public class ReportService {
             new Column("Findings", 0.8f),
             new Column("Highest severity", 1.2f),
             new Column("At risk", 0.8f));
+    private static final List<Column> AUDIT_COLUMNS = List.of(
+            new Column("Timestamp", 1.5f),
+            new Column("Finding", 1.0f),
+            new Column("Title", 2.3f),
+            new Column("Actor", 1.2f),
+            new Column("Action", 1.0f),
+            new Column("From", 0.9f),
+            new Column("To", 0.9f),
+            new Column("Detail", 2.2f));
 
     private final FindingService findingService;
     private final CoverageService coverageService;
     private final FrameworkRepository frameworks;
+    private final AuditLogRepository auditLog;
     private final ReportFactory reportFactory;
 
     public ReportService(FindingService findingService, CoverageService coverageService,
-                         FrameworkRepository frameworks, ReportFactory reportFactory) {
+                         FrameworkRepository frameworks, AuditLogRepository auditLog, ReportFactory reportFactory) {
         this.findingService = findingService;
         this.coverageService = coverageService;
         this.frameworks = frameworks;
+        this.auditLog = auditLog;
         this.reportFactory = reportFactory;
     }
 
@@ -62,6 +75,15 @@ public class ReportService {
         List<List<String>> rows = findings.stream().map(ReportService::findingRow).toList();
         ReportData data = new ReportData("Findings register", findingsSummary(findings), FINDING_COLUMNS, rows);
         return render("findings", fmt, data);
+    }
+
+    public RenderedReport auditReport(String format) {
+        ReportFormat fmt = parseFormat(format);
+        List<AuditLog> entries = auditLog.findAllForExport();
+        List<List<String>> rows = entries.stream().map(ReportService::auditRow).toList();
+        long findings = entries.stream().map(a -> a.getFinding().getId()).distinct().count();
+        String subtitle = entries.size() + " events across " + findings + " findings (including deleted)";
+        return render("audit-log", fmt, new ReportData("Audit log", subtitle, AUDIT_COLUMNS, rows));
     }
 
     public RenderedReport coverageReport(String framework, String format) {
@@ -105,6 +127,18 @@ public class ReportService {
 
     private static String controlRef(ControlRef c) {
         return c.framework() + ":" + c.code();
+    }
+
+    private static List<String> auditRow(AuditLog a) {
+        return List.of(
+                a.getTimestamp().toString(),
+                a.getFinding().getReference(),
+                a.getFinding().getTitle(),
+                a.getActor().getName(),
+                a.getAction(),
+                a.getFromStatus() == null ? "" : FindingMapper.statusToWire(a.getFromStatus()),
+                a.getToStatus() == null ? "" : FindingMapper.statusToWire(a.getToStatus()),
+                a.getComment() == null ? "" : a.getComment());
     }
 
     private static List<String> coverageRow(CoverageRow r) {

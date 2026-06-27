@@ -89,7 +89,10 @@ export function ControlCoverage() {
               }}
               options={frameworks.map((f) => ({ value: f.slug, label: `${f.name} ${f.version}` }))}
             />
-            <ExportMenu csvPath={coverageReportPath(fw, 'csv')} pdfPath={coverageReportPath(fw, 'pdf')} disabled={!fw || status !== 'ready'} />
+            <ExportMenu
+              reports={[{ label: 'Coverage', csvPath: coverageReportPath(fw, 'csv'), pdfPath: coverageReportPath(fw, 'pdf') }]}
+              disabled={!fw || status !== 'ready'}
+            />
           </div>
         ) : null}
       </div>
