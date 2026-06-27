@@ -4,11 +4,12 @@ import java.util.Locale;
 
 /**
  * Supported report output formats (PLAN §10/§14). Each carries the file extension and HTTP media
- * type used for the download. CSV ships first; PDF is added in the next slice (a new enum constant +
- * a {@link ReportWriter} bean — the {@link ReportFactory} needs no change, per OCP).
+ * type used for the download. Each format is also backed by a {@link ReportWriter} bean; adding one
+ * is a new enum constant + a new writer — the {@link ReportFactory} needs no change, per OCP.
  */
 public enum ReportFormat {
-    CSV("csv", "text/csv");
+    CSV("csv", "text/csv"),
+    PDF("pdf", "application/pdf");
 
     private final String extension;
     private final String mediaType;

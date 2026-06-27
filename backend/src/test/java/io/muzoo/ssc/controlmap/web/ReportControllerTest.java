@@ -1,5 +1,6 @@
 package io.muzoo.ssc.controlmap.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -21,11 +22,16 @@ import io.muzoo.ssc.controlmap.repository.FindingRepository;
 import io.muzoo.ssc.controlmap.repository.FrameworkRepository;
 import io.muzoo.ssc.controlmap.repository.UserRepository;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,8 +54,8 @@ class ReportControllerTest {
     @BeforeEach
     void setUp() {
         User owner = users.save(new User(ANALYST, "Report Analyst", "x", Role.ANALYST));
-        // A title containing a comma exercises the CSV quoting/escaping path.
-        Finding f = findings.save(new Finding("CM-RPT-0001", "Injection, stored", "d",
+        // A long title with a comma exercises CSV quoting *and* the PDF word-wrap (no truncation).
+        Finding f = findings.save(new Finding("CM-RPT-0001", "Injection, stored in the customer statement export view", "d",
                 Severity.HIGH, new BigDecimal("7.5"), owner, new Asset("Edge", null, null, null)));
         f.setStatus(FindingStatus.OPEN);
         findings.save(f);
@@ -69,7 +75,7 @@ class ReportControllerTest {
                 .andExpect(content().string(containsString("Reference,Title,Severity,CVSS,Status,Owner,Asset,Mapped controls,Updated")))
                 .andExpect(content().string(containsString("CM-RPT-0001")))
                 // comma in the title forces quoting; the mapped control is joined as framework:code.
-                .andExpect(content().string(containsString("\"Injection, stored\"")))
+                .andExpect(content().string(containsString("\"Injection, stored in the customer statement export view\"")))
                 .andExpect(content().string(containsString("owasp:A05")));
     }
 
@@ -90,6 +96,37 @@ class ReportControllerTest {
                 .andExpect(header().string("Content-Disposition", containsString("coverage-owasp-")))
                 .andExpect(content().string(startsWith("Code,Control,Findings,Highest severity,At risk")))
                 .andExpect(content().string(containsString("A05")));
+    }
+
+    @Test
+    @WithMockUser(username = ANALYST)
+    void findingsPdfDownloadsAsValidPdf() throws Exception {
+        byte[] body = mockMvc.perform(get("/api/reports/findings").param("format", "pdf"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition", containsString("findings-")))
+                .andExpect(header().string("Content-Disposition", containsString(".pdf")))
+                .andReturn().getResponse().getContentAsByteArray();
+        // %PDF- magic number proves a real PDF document was produced.
+        assertThat(body).isNotEmpty();
+        assertThat(new String(body, 0, Math.min(5, body.length), StandardCharsets.US_ASCII)).startsWith("%PDF-");
+        // Parse it back and confirm the table rendered the header, the finding, the summary line, and
+        // — crucially — the *tail* of the long title, proving cells word-wrap instead of truncating.
+        try (PDDocument doc = Loader.loadPDF(body)) {
+            String text = new PDFTextStripper().getText(doc).replaceAll("\\s+", " ");
+            assertThat(text).contains("Reference").contains("Severity").contains("CM-RPT-0001");
+            assertThat(text).contains("findings"); // the summary line ("N findings · …")
+            assertThat(text).contains("statement export"); // title words 6-7 — present only if it wrapped vs truncated
+        }
+    }
+
+    @Test
+    @WithMockUser(username = ANALYST)
+    void coveragePdfDownloadsForFramework() throws Exception {
+        mockMvc.perform(get("/api/reports/coverage").param("framework", "owasp").param("format", "pdf"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition", containsString("coverage-owasp-")));
     }
 
     @Test

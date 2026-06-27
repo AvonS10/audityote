@@ -7,7 +7,7 @@ import { ApiError, type ApiErrorBody } from './api'
  */
 const BASE = '/api'
 
-export type ReportFormat = 'csv'
+export type ReportFormat = 'csv' | 'pdf'
 
 export const findingsReportPath = (format: ReportFormat = 'csv') => `/reports/findings?format=${format}`
 
