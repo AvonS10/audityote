@@ -24,4 +24,13 @@ public interface FindingControlMappingRepository extends JpaRepository<FindingCo
             where m.finding.id in :findingIds
             """)
     List<FindingControlMapping> findWithControlByFindingIds(@Param("findingIds") Collection<Long> findingIds);
+
+    /** All mappings (with their finding) for the controls of one framework — backs coverage rollup (#13). */
+    @Query("""
+            select m from FindingControlMapping m
+            join fetch m.finding
+            join fetch m.control c
+            where c.framework.slug = :slug
+            """)
+    List<FindingControlMapping> findWithFindingByFrameworkSlug(@Param("slug") String slug);
 }
