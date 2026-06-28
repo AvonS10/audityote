@@ -57,6 +57,7 @@ public interface FindingRepository extends JpaRepository<Finding, Long> {
             where ((:deleted = false and f.deletedAt is null) or (:deleted = true and f.deletedAt is not null))
               and (:status is null or f.status = :status)
               and (:severity is null or f.severity = :severity)
+              and (:ownerEmail is null or f.owner.email = :ownerEmail)
               and (:q = '' or lower(f.reference) like concat('%', :q, '%')
                             or lower(f.title) like concat('%', :q, '%'))
               and (:framework is null or exists (
@@ -68,6 +69,7 @@ public interface FindingRepository extends JpaRepository<Finding, Long> {
             where ((:deleted = false and f.deletedAt is null) or (:deleted = true and f.deletedAt is not null))
               and (:status is null or f.status = :status)
               and (:severity is null or f.severity = :severity)
+              and (:ownerEmail is null or f.owner.email = :ownerEmail)
               and (:q = '' or lower(f.reference) like concat('%', :q, '%')
                             or lower(f.title) like concat('%', :q, '%'))
               and (:framework is null or exists (
@@ -76,6 +78,7 @@ public interface FindingRepository extends JpaRepository<Finding, Long> {
             """)
     Page<Finding> search(@Param("status") FindingStatus status,
                          @Param("severity") Severity severity,
+                         @Param("ownerEmail") String ownerEmail,
                          @Param("q") String q,
                          @Param("framework") String framework,
                          @Param("deleted") boolean deleted,

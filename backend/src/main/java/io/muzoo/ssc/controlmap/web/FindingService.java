@@ -72,10 +72,14 @@ public class FindingService {
     }
 
     public PagedResponse<FindingSummary> list(String status, String severity, String framework, String q,
-                                              boolean deleted, int page, int size) {
+                                              boolean deleted, boolean mine, String currentUserEmail,
+                                              int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        // "Returned to me" / mine filter: restrict to the caller's own findings (#4).
+        String ownerEmail = mine ? currentUserEmail : null;
         Page<Finding> result = findings.search(
-                parseStatus(status), parseSeverity(severity), normalizeQuery(q), blankToNull(framework), deleted, pageable);
+                parseStatus(status), parseSeverity(severity), ownerEmail, normalizeQuery(q),
+                blankToNull(framework), deleted, pageable);
 
         Map<Long, List<ControlRef>> controlsByFinding = loadControlRefs(result.getContent());
         List<FindingSummary> summaries = result.getContent().stream()

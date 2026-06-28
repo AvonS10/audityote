@@ -41,9 +41,11 @@ public class FindingController {
             @RequestParam(required = false) String framework,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean deleted,
+            @RequestParam(defaultValue = "false") boolean mine,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return findingService.list(status, severity, framework, q, deleted, page, size);
+            @RequestParam(defaultValue = "20") int size,
+            Principal principal) {
+        return findingService.list(status, severity, framework, q, deleted, mine, principal.getName(), page, size);
     }
 
     @GetMapping("/findings/{id}")
