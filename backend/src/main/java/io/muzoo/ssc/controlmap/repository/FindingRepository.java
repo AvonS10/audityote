@@ -32,6 +32,13 @@ public interface FindingRepository extends JpaRepository<Finding, Long> {
     List<Finding> findByDeletedAtIsNull(Sort sort);
 
     /**
+     * Active findings in a given status, with the owner fetch-joined (no N+1) — backs the Reviewer
+     * sign-off queue (#17): pass {@code SUBMITTED} for findings awaiting a decision.
+     */
+    @Query("select f from Finding f join fetch f.owner where f.status = :status and f.deletedAt is null")
+    List<Finding> findByStatusWithOwner(@Param("status") FindingStatus status, Sort sort);
+
+    /**
      * Paged findings with optional filters (null = ignore). {@code deleted=false} returns active
      * findings; {@code deleted=true} returns the soft-deleted ones (the "Show deleted" view). The
      * owner is fetch-joined to avoid an N+1; the framework filter matches findings having a mapped

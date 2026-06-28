@@ -84,6 +84,20 @@ public class FindingService {
         return PagedResponse.of(result, summaries);
     }
 
+    /**
+     * Findings awaiting reviewer sign-off: {@code SUBMITTED} and active, oldest-submitted first so the
+     * queue reads FIFO (longest-waiting at the top). Backs {@code GET /api/reviews/queue} (#17); the
+     * approve/return decisions themselves go through {@link #transition} (the State machine, §8).
+     */
+    public List<FindingSummary> reviewQueue() {
+        List<Finding> submitted = findings.findByStatusWithOwner(
+                FindingStatus.SUBMITTED, Sort.by(Sort.Direction.ASC, "updatedAt"));
+        Map<Long, List<ControlRef>> controlsByFinding = loadControlRefs(submitted);
+        return submitted.stream()
+                .map(f -> mapper.toSummary(f, controlsByFinding.getOrDefault(f.getId(), List.of())))
+                .toList();
+    }
+
     /** All active findings (no paging) as summaries, newest first — backs report export (#14). */
     public List<FindingSummary> listAllForExport() {
         List<Finding> all = findings.findByDeletedAtIsNull(Sort.by(Sort.Direction.DESC, "updatedAt"));
