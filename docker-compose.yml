@@ -64,7 +64,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "5173:80"                    # static build served by nginx on :80
+      - "5173:8080"                  # static build served by unprivileged nginx on :8080
 
 volumes:
   pgdata:

@@ -12,8 +12,11 @@ COPY . .
 RUN npm run build
 
 # --- runtime stage ---
-FROM nginx:1.27-alpine AS runtime
+# Unprivileged nginx: runs as the non-root 'nginx' user (uid 101) and listens on 8080 (Trivy DS-0002).
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+USER root
 # SPA routing fallback + same-origin /api proxy to the backend.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
+USER nginx
+EXPOSE 8080

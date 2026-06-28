@@ -26,4 +26,4 @@ services:
   frontend:
     # Publish ONLY on loopback. The host nginx vhost proxies audityote.pasin.dev -> http://127.0.0.1:8090.
     # !override replaces the base's published port outright (!reset would just CLEAR it, leaving nothing).
-    ports: !override ["127.0.0.1:8090:80"]
+    ports: !override ["127.0.0.1:8090:8080"]
