@@ -20,9 +20,9 @@
   .cm-sidebar a { justify-content: center !important; padding-left: 0 !important; padding-right: 0 !important; }
   .cm-user-block { justify-content: center !important; }
 
-  /* Findings table: drop Frameworks (5) and Updated (7) first */
-  .cm-findings th:nth-child(5), .cm-findings td:nth-child(5),
-  .cm-findings th:nth-child(7), .cm-findings td:nth-child(7) { display: none !important; }
+  /* Findings table: drop Frameworks (6) and Updated (8) first */
+  .cm-findings th:nth-child(6), .cm-findings td:nth-child(6),
+  .cm-findings th:nth-child(8), .cm-findings td:nth-child(8) { display: none !important; }
 }
 
 /* ---- Small tablet (≤980): stack two-panel layouts; trim more columns ---- */
@@ -32,9 +32,9 @@
   .cm-review { flex-direction: column !important; height: auto !important; }
   .cm-review-list { width: 100% !important; max-height: 42vh; border-right: 0 !important; border-bottom: 1px solid var(--border-subtle) !important; }
 
-  /* Findings table: also drop CVSS (3) and Owner (6) — leaves Finding, Severity, Status */
+  /* Findings table: also drop CVSS (3) and Owner (7) — leaves Finding, Severity, Risk, Status */
   .cm-findings th:nth-child(3), .cm-findings td:nth-child(3),
-  .cm-findings th:nth-child(6), .cm-findings td:nth-child(6) { display: none !important; }
+  .cm-findings th:nth-child(7), .cm-findings td:nth-child(7) { display: none !important; }
 }
 
 /* ---- Narrow (≤720): findings table → stacked card list; compact chrome ---- */

@@ -13,6 +13,7 @@ import { Select } from '../components/ui/Select'
 import { SeverityBadge } from '../components/data/SeverityBadge'
 import { StatusBadge } from '../components/data/StatusBadge'
 import { CvssScore } from '../components/data/CvssScore'
+import { RiskScore } from '../components/data/RiskScore'
 import { FrameworkTag } from '../components/data/FrameworkTag'
 
 type Status = 'loading' | 'ready' | 'error'
@@ -136,6 +137,7 @@ const COLS: Col[] = [
   { key: 'title', label: 'Finding', sortable: true, align: 'left' },
   { key: 'severity', label: 'Severity', sortable: true, w: 108 },
   { key: 'cvss', label: 'CVSS', sortable: true, w: 92 },
+  { key: 'risk', label: 'Risk', sortable: true, w: 120 },
   { key: 'status', label: 'Status', sortable: true, w: 132 },
   { key: 'frameworks', label: 'Frameworks', sortable: false, w: 176 },
   { key: 'owner', label: 'Owner', sortable: true, w: 150 },
@@ -150,6 +152,8 @@ function compare(a: FindingSummary, b: FindingSummary, key: string): number {
       return (SEV_ORDER[a.severity] ?? 9) - (SEV_ORDER[b.severity] ?? 9)
     case 'cvss':
       return (a.cvss ?? -1) - (b.cvss ?? -1)
+    case 'risk':
+      return a.riskScore - b.riskScore
     case 'updated':
       return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
     case 'status':
@@ -174,7 +178,7 @@ function FindingsTable({ rows, deleted = false, onRowClick, onClear }: { rows: F
   return (
     <div className="bg-surface-card border border-subtle rounded-md shadow-xs" style={{ overflow: 'hidden' }}>
       <div className="cm-findings-scroll" style={{ overflowX: 'auto' }}>
-        <table className="cm-findings" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 920 }}>
+        <table className="cm-findings" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1040 }}>
           <thead>
             <tr>
               {COLS.map((col) => {
@@ -271,6 +275,7 @@ function FindingRow({ f, deleted = false, onClick }: { f: FindingSummary; delete
       </td>
       <td style={td}><SeverityBadge level={f.severity} /></td>
       <td style={td}><CvssScore score={f.cvss} /></td>
+      <td style={td}><RiskScore score={f.riskScore} source={f.riskSource} /></td>
       <td style={td}><StatusBadge status={f.status} /></td>
       <td style={td}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>

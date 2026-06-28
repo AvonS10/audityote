@@ -5,6 +5,8 @@ import io.muzoo.ssc.controlmap.domain.AuditLog;
 import io.muzoo.ssc.controlmap.domain.Finding;
 import io.muzoo.ssc.controlmap.domain.FindingStatus;
 import io.muzoo.ssc.controlmap.domain.Severity;
+import io.muzoo.ssc.controlmap.risk.RiskScore;
+import io.muzoo.ssc.controlmap.risk.RiskScoringService;
 import io.muzoo.ssc.controlmap.web.dto.ControlRef;
 import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
 import io.muzoo.ssc.controlmap.web.dto.FindingSummary;
@@ -20,7 +22,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class FindingMapper {
 
+    private final RiskScoringService riskScoring;
+
+    public FindingMapper(RiskScoringService riskScoring) {
+        this.riskScoring = riskScoring;
+    }
+
     public FindingSummary toSummary(Finding finding, List<ControlRef> controls) {
+        RiskScore risk = riskScoring.score(finding);
         return new FindingSummary(
                 finding.getId(),
                 finding.getReference(),
@@ -28,6 +37,8 @@ public class FindingMapper {
                 finding.getAsset() != null ? finding.getAsset().getName() : null,
                 severityToWire(finding.getSeverity()),
                 finding.getCvssScore(),
+                risk.value(),
+                risk.source().wire(),
                 statusToWire(finding.getStatus()),
                 controls,
                 finding.getOwner().getName(),
@@ -37,6 +48,7 @@ public class FindingMapper {
     public FindingDetail toDetail(Finding finding, List<FindingDetail.MappedControl> controls,
                                   List<FindingDetail.AuditEntry> audit) {
         Asset asset = finding.getAsset();
+        RiskScore risk = riskScoring.score(finding);
         return new FindingDetail(
                 finding.getId(),
                 finding.getReference(),
@@ -44,6 +56,8 @@ public class FindingMapper {
                 finding.getDescription(),
                 severityToWire(finding.getSeverity()),
                 finding.getCvssScore(),
+                risk.value(),
+                risk.source().wire(),
                 statusToWire(finding.getStatus()),
                 asset == null ? null : new FindingDetail.AssetDto(asset.getName(), asset.getEnv(), asset.getComponent(), asset.getUrl()),
                 finding.getOwner().getName(),

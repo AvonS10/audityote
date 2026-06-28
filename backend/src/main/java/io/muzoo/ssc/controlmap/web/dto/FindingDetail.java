@@ -15,6 +15,8 @@ public record FindingDetail(
         String description,
         String severity,
         BigDecimal cvss,
+        BigDecimal riskScore,
+        String riskSource,
         String status,
         AssetDto asset,
         String owner,

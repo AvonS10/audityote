@@ -21,6 +21,7 @@ import { Select } from '../components/ui/Select'
 import { SeverityBadge } from '../components/data/SeverityBadge'
 import { StatusBadge } from '../components/data/StatusBadge'
 import { CvssScore } from '../components/data/CvssScore'
+import { RiskScore } from '../components/data/RiskScore'
 import { FrameworkTag } from '../components/data/FrameworkTag'
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog'
 import { ReturnDialog } from '../components/feedback/ReturnDialog'
@@ -360,6 +361,7 @@ export function FindingDetailScreen() {
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 28, flexWrap: 'wrap', paddingTop: 4 }}>
               <MetaItem label="Severity"><SeverityBadge level={finding.severity} /></MetaItem>
               <MetaItem label="CVSS"><CvssScore score={finding.cvss} /></MetaItem>
+              <MetaItem label="Risk score"><RiskScore score={finding.riskScore} source={finding.riskSource} /></MetaItem>
               <MetaItem label="Status"><StatusBadge status={finding.status} /></MetaItem>
               <MetaItem label="Owner"><Avatar name={finding.owner} size={22} /><span style={{ fontSize: 'var(--fs-body-sm)' }}>{finding.owner}</span></MetaItem>
               <MetaItem label="Created"><span className="font-mono">{formatDate(finding.createdAt)}</span></MetaItem>

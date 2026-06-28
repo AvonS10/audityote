@@ -16,6 +16,8 @@ public record FindingSummary(
         String asset,
         String severity,
         BigDecimal cvss,
+        BigDecimal riskScore,
+        String riskSource,
         String status,
         List<ControlRef> controls,
         String owner,

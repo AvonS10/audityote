@@ -12,6 +12,10 @@ export interface FindingSummary {
   asset: string | null
   severity: string
   cvss: number | null
+  /** Effective risk score 0–10 (CVSS when present, else severity-derived); never null. */
+  riskScore: number
+  /** Which strategy produced the score: 'cvss' or 'severity' (derived). */
+  riskSource: string
   status: string
   controls: ControlRef[]
   owner: string
@@ -77,6 +81,10 @@ export interface FindingDetail {
   description: string | null
   severity: string
   cvss: number | null
+  /** Effective risk score 0–10 (CVSS when present, else severity-derived); never null. */
+  riskScore: number
+  /** Which strategy produced the score: 'cvss' or 'severity' (derived). */
+  riskSource: string
   status: string
   asset: AssetDetail | null
   owner: string

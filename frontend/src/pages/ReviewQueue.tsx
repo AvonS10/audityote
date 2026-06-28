@@ -15,6 +15,7 @@ import { Button } from '../components/ui/Button'
 import { SeverityBadge } from '../components/data/SeverityBadge'
 import { StatusBadge } from '../components/data/StatusBadge'
 import { CvssScore } from '../components/data/CvssScore'
+import { RiskScore } from '../components/data/RiskScore'
 import { FrameworkTag } from '../components/data/FrameworkTag'
 import { ReturnDialog } from '../components/feedback/ReturnDialog'
 import { useToast } from '../components/feedback/ToastProvider'
@@ -120,6 +121,7 @@ function ReviewPanel({
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 26, flexWrap: 'wrap', paddingTop: 2 }}>
             <MetaPair label="Severity"><SeverityBadge level={detail.severity} /></MetaPair>
             <MetaPair label="CVSS"><CvssScore score={detail.cvss} /></MetaPair>
+            <MetaPair label="Risk score"><RiskScore score={detail.riskScore} source={detail.riskSource} /></MetaPair>
             <MetaPair label="Submitted by"><Avatar name={detail.owner} size={22} /><span>{detail.owner}</span></MetaPair>
             <MetaPair label="Submitted"><span>{relativeTime(detail.updatedAt)}</span></MetaPair>
           </div>

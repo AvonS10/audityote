@@ -10,6 +10,7 @@ import io.muzoo.ssc.controlmap.domain.Framework;
 import io.muzoo.ssc.controlmap.domain.Role;
 import io.muzoo.ssc.controlmap.domain.Severity;
 import io.muzoo.ssc.controlmap.domain.User;
+import io.muzoo.ssc.controlmap.repository.AuditLogRepository;
 import io.muzoo.ssc.controlmap.repository.ControlRepository;
 import io.muzoo.ssc.controlmap.repository.FindingControlMappingRepository;
 import io.muzoo.ssc.controlmap.repository.FindingRepository;
@@ -35,6 +36,7 @@ class DataSeederTest {
     @Autowired private UserRepository users;
     @Autowired private FindingRepository findingRepo;
     @Autowired private FindingControlMappingRepository mappingRepo;
+    @Autowired private AuditLogRepository auditLogs;
 
     private DataSeeder newSeeder() {
         PasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -48,6 +50,13 @@ class DataSeederTest {
 
     @Test
     void seedsCatalogAndDemoUsers() {
+        // Hermetic: the shared dev DB may hold workflow-mutated sample findings (the seeder skips by
+        // reference, so a moved status would stick). Clear findings first so the seeder re-creates the
+        // samples with their seeded statuses. Rolled back by @DataJpaTest — the dev DB is untouched.
+        auditLogs.deleteAllInBatch();
+        mappingRepo.deleteAllInBatch();
+        findingRepo.deleteAllInBatch();
+
         newSeeder().seed();
 
         // All three frameworks (by slug), with the expected number of controls each.
