@@ -7,8 +7,8 @@ import { Dashboard } from './pages/Dashboard'
 import { FindingDetailScreen } from './pages/FindingDetailScreen'
 import { FindingForm } from './pages/FindingForm'
 import { Login } from './pages/Login'
-import { Placeholder } from './pages/Placeholder'
 import { ReviewQueue } from './pages/ReviewQueue'
+import { RiskPosture } from './pages/RiskPosture'
 
 /**
  * Top-level routes. /login is public; everything else is gated by ProtectedRoute and rendered
@@ -32,7 +32,7 @@ function App() {
         <Route path="/findings/:id" element={<FindingDetailScreen />} />
         <Route path="/catalog" element={<ControlCatalog />} />
         <Route path="/coverage" element={<ControlCoverage />} />
-        <Route path="/posture" element={<Placeholder title="Risk Posture" note="The risk posture dashboard arrives in build increment #19." />} />
+        <Route path="/posture" element={<RiskPosture />} />
         <Route path="/reviews" element={<ReviewQueue />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

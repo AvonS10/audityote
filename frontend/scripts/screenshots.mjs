@@ -68,6 +68,17 @@ if (EMAIL && PASSWORD) {
   await page.waitForTimeout(200)
   await shot('app-carbon')
 
+  // Risk Posture screen (#19): gauge + stat band + breakdowns + heatmap (honest, no history)
+  await page.goto(`${BASE}/posture`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(450)
+  await shot('posture')
+  // Illustrative demo toggle on — populates the delta + trend with labelled sample data
+  await page.getByRole('button', { name: /Illustrative demo/ }).click()
+  await page.waitForTimeout(300)
+  await shot('posture-demo')
+  await page.getByRole('button', { name: /Illustrative demo/ }).click()
+  await page.waitForTimeout(150)
+
   // Control Catalog screen
   await page.goto(`${BASE}/catalog`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(250)

@@ -35,6 +35,10 @@
   /* Findings table: also drop CVSS (3) and Owner (7) — leaves Finding, Severity, Risk, Status */
   .cm-findings th:nth-child(3), .cm-findings td:nth-child(3),
   .cm-findings th:nth-child(7), .cm-findings td:nth-child(7) { display: none !important; }
+
+  /* Risk Posture: stat band 4→2 columns; gauge/trend + chart pairs stack */
+  .cm-posture-stats { grid-template-columns: 1fr 1fr !important; }
+  .cm-posture-row { grid-template-columns: 1fr !important; }
 }
 
 /* ---- Narrow (≤720): findings table → stacked card list; compact chrome ---- */
@@ -48,4 +52,7 @@
   .cm-findings tr { padding: 6px 2px 10px !important; }
   .cm-findings td { height: auto !important; padding: 3px 16px !important; border: 0 !important; }
   .cm-findings td:first-child { padding-top: 11px !important; }
+
+  /* Risk Posture: stat band → single column at narrow width */
+  .cm-posture-stats { grid-template-columns: 1fr !important; }
 }

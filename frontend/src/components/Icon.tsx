@@ -1,4 +1,6 @@
 import {
+  ArrowDown,
+  ArrowUp,
   ArrowUpRight,
   Bell,
   Check,
@@ -14,12 +16,15 @@ import {
   ListChecks,
   LogOut,
   Map as MapIcon,
+  OctagonAlert,
   Plus,
   Search,
   Settings,
   Shield,
+  ShieldAlert,
   ShieldCheck,
   Trash2,
+  TrendingDown,
   TrendingUp,
   TriangleAlert,
   X,
@@ -57,6 +62,11 @@ const ICONS = {
   info: Info,
   'log-out': LogOut,
   'arrow-up-right': ArrowUpRight,
+  'arrow-up': ArrowUp,
+  'arrow-down': ArrowDown,
+  'shield-alert': ShieldAlert,
+  'alert-octagon': OctagonAlert,
+  'trending-down': TrendingDown,
 } satisfies Record<string, LucideIcon>
 
 export type IconName = keyof typeof ICONS
