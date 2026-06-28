@@ -34,7 +34,7 @@ function Brand() {
         className="cm-brand-word"
         style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-on-dark)' }}
       >
-        Control<span style={{ opacity: 0.62 }}>Map</span>
+        Audit<span style={{ opacity: 0.62 }}>Yote</span>
       </span>
     </span>
   )

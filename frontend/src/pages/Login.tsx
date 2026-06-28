@@ -34,7 +34,7 @@ function BrandPanel() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 11, position: 'relative' }}>
         <CoyoteBadge size={32} />
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 700, letterSpacing: '-0.01em' }}>
-          Control<span style={{ opacity: 0.6 }}>Map</span>
+          Audit<span style={{ opacity: 0.6 }}>Yote</span>
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 420, position: 'relative' }}>

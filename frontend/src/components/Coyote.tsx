@@ -40,7 +40,7 @@ export function CoyoteBadge({ size = 32, radius = 8 }: { size?: number; radius?:
   )
 }
 
-/** Full wordmark lockup (badge + "ControlMap"). */
+/** Full wordmark lockup (badge + "AuditYote"). */
 export function CoyoteLockup({ size = 32, fontSize = 16, onDark = false }: { size?: number; fontSize?: number; onDark?: boolean }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
@@ -54,7 +54,7 @@ export function CoyoteLockup({ size = 32, fontSize = 16, onDark = false }: { siz
           color: onDark ? 'var(--text-on-dark)' : 'var(--text-strong)',
         }}
       >
-        Control<span style={{ opacity: 0.6 }}>Map</span>
+        Audit<span style={{ opacity: 0.6 }}>Yote</span>
       </span>
     </span>
   )
