@@ -1,0 +1,29 @@
+# ============================================================
+# AuditYote — DEPLOY override for the shared droplet (runs BEHIND the host's existing nginx + Certbot).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.deploy.yml --profile app up -d --build
+#
+# The host's native nginx owns ports 80/443 and terminates TLS (Certbot) for audityote.pasin.dev,
+# proxying to the frontend container on 127.0.0.1:8090. Postgres and the backend stay on the internal
+# compose network only — nothing but loopback:8090 is published. (This is the variant we actually run;
+# docker-compose.prod.yml is the alternative standalone-Caddy path for a server with no existing proxy.)
+#
+# `ports: !reset []` truly clears the host-published ports inherited from docker-compose.yml — a plain
+# `[]` would MERGE, leaving them exposed. See docker-compose.prod.yml for the same fix.
+# ============================================================
+
+services:
+  db:
+    ports: !reset []                       # internal only — Postgres is never reachable off-host
+
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # TLS is terminated by the host nginx; issue the session cookie as Secure (HTTPS-only).
+      SESSION_COOKIE_SECURE: "true"
+    ports: !reset []                       # internal only — the SPA proxies /api over the compose network
+
+  frontend:
+    # Publish ONLY on loopback. The host nginx vhost proxies audityote.pasin.dev -> http://127.0.0.1:8090.
+    # !override replaces the base's published port outright (!reset would just CLEAR it, leaving nothing).
+    ports: !override ["127.0.0.1:8090:80"]
