@@ -1,0 +1,7 @@
+# Keep the build context small — node_modules and build artifacts are produced inside the image.
+node_modules/
+dist/
+.screenshots/
+.idea/
+*.local
+.git/

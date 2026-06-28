@@ -11,15 +11,18 @@
 
 services:
   db:
-    ports: []                  # do not expose Postgres on the public host
+    # !reset clears the port list inherited from the base file (a plain [] would merge, not replace).
+    ports: !reset []           # do not expose Postgres on the public host
 
   backend:
     environment:
       SPRING_PROFILES_ACTIVE: prod
-    ports: []                  # only reachable via the internal compose network
+      # Behind Caddy's TLS — issue the session cookie as Secure (HTTPS-only).
+      SESSION_COOKIE_SECURE: "true"
+    ports: !reset []           # only reachable via the internal compose network (Caddy proxies /api)
 
   frontend:
-    ports: []                  # only reachable via Caddy
+    ports: !reset []           # only reachable via Caddy
 
   caddy:
     image: caddy:2-alpine

@@ -1,0 +1,7 @@
+# Keep the build context small and reproducible — the image builds the jar from source.
+target/
+.idea/
+*.iml
+.git/
+.gitignore
+*.md
