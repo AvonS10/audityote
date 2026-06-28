@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard'
 import { FindingDetailScreen } from './pages/FindingDetailScreen'
 import { FindingForm } from './pages/FindingForm'
 import { Login } from './pages/Login'
+import { Register } from './pages/Register'
 import { AccountSettings } from './pages/AccountSettings'
 import { ReviewQueue } from './pages/ReviewQueue'
 import { RiskPosture } from './pages/RiskPosture'
@@ -20,6 +21,7 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route
         element={
           <ProtectedRoute>

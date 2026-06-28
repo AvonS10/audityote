@@ -35,6 +35,10 @@ controlmap:
     # Risk-posture gauge normalization cap (§9/§16 #5): the weighted active-risk load that reads as
     # "Severe" (score 100). Higher = the gauge stays calmer; lower = it reacts to fewer findings.
     cap: ${CONTROLMAP_POSTURE_CAP:100}
+  signup:
+    # Comma-separated company email domains allowed to self-register (new accounts default to ANALYST).
+    # Empty (the default) = self-registration disabled. Set per-environment, e.g. audityote.pasin.dev.
+    allowed-domains: ${SIGNUP_ALLOWED_DOMAINS:}
 
 # Demo-user seeding (DataSeeder). Real values come from the gitignored .env; blank = not seeded.
 seed:

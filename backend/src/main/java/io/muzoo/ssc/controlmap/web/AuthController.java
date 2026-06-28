@@ -3,10 +3,12 @@ package io.muzoo.ssc.controlmap.web;
 import io.muzoo.ssc.controlmap.domain.User;
 import io.muzoo.ssc.controlmap.repository.UserRepository;
 import io.muzoo.ssc.controlmap.web.dto.LoginRequest;
+import io.muzoo.ssc.controlmap.web.dto.RegisterRequest;
 import io.muzoo.ssc.controlmap.web.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,12 +34,15 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository users;
+    private final RegistrationService registrationService;
     private final SecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
 
-    public AuthController(AuthenticationManager authenticationManager, UserRepository users) {
+    public AuthController(AuthenticationManager authenticationManager, UserRepository users,
+                          RegistrationService registrationService) {
         this.authenticationManager = authenticationManager;
         this.users = users;
+        this.registrationService = registrationService;
     }
 
     @PostMapping("/login")
@@ -48,12 +53,31 @@ public class AuthController {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
+        startSession(authentication, httpRequest, httpResponse);
+        return ResponseEntity.ok(UserResponse.from(currentUser(authentication.getName())));
+    }
+
+    /**
+     * Self-service registration (domain-gated → ANALYST), then auto-login so the new user lands signed
+     * in. Public endpoint; the service rejects disallowed domains (403) and duplicate emails (409).
+     */
+    @PostMapping("/register")
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request,
+                                                 HttpServletRequest httpRequest,
+                                                 HttpServletResponse httpResponse) {
+        User created = registrationService.register(request.name(), request.email(), request.password());
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(created.getEmail(), request.password()));
+        startSession(authentication, httpRequest, httpResponse);
+        return ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.from(created));
+    }
+
+    /** Persist the authenticated security context into the (cookie-backed) HTTP session. */
+    private void startSession(Authentication authentication, HttpServletRequest req, HttpServletResponse res) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
-        securityContextRepository.saveContext(context, httpRequest, httpResponse);
-
-        return ResponseEntity.ok(UserResponse.from(currentUser(authentication.getName())));
+        securityContextRepository.saveContext(context, req, res);
     }
 
     @GetMapping("/me")

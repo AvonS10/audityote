@@ -17,6 +17,8 @@ interface AuthContextValue {
   /** True when the session expired mid-use (a 401 on an authenticated request) → ?reason=expired. */
   expired: boolean
   login: (email: string, password: string) => Promise<User>
+  /** Self-service registration (#reg): creates the account, auto-logs-in, returns the new user. */
+  register: (name: string, email: string, password: string) => Promise<User>
   logout: () => Promise<void>
   /** Re-fetch the signed-in user (e.g. after editing the profile) so the chrome reflects it. */
   refresh: () => Promise<void>
@@ -62,6 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return u
   }, [])
 
+  const register = useCallback(async (name: string, email: string, password: string) => {
+    const u = await api.post<User>('/auth/register', { name, email, password })
+    setUser(u)
+    setStatus('authenticated')
+    setExpired(false)
+    return u
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout')
@@ -79,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  return <AuthContext.Provider value={{ user, status, expired, login, logout, refresh }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, status, expired, login, register, logout, refresh }}>{children}</AuthContext.Provider>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

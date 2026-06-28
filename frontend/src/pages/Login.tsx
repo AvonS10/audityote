@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../auth/AuthContext'
 import { Icon } from '../components/Icon'
@@ -12,7 +12,7 @@ const REASON_NOTICE: Record<string, string> = {
   expired: 'Your session expired. Please sign in again.',
 }
 
-function BrandPanel() {
+export function BrandPanel() {
   return (
     <div
       style={{
@@ -58,7 +58,7 @@ function BrandPanel() {
   )
 }
 
-function Field({ label, error, children }: { label: string; error?: string | null; children: ReactNode }) {
+export function AuthField({ label, error, children }: { label: string; error?: string | null; children: ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <label style={{ fontSize: 'var(--fs-body-sm)', fontWeight: 600, color: 'var(--text-strong)' }}>{label}</label>
@@ -153,7 +153,7 @@ function LoginForm() {
       ) : null}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Field label="Work email" error={touched ? errors.email : null}>
+        <AuthField label="Work email" error={touched ? errors.email : null}>
           <Input
             type="email"
             placeholder="you@bank.com"
@@ -162,8 +162,8 @@ function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
           />
-        </Field>
-        <Field label="Password" error={touched ? errors.pw : null}>
+        </AuthField>
+        <AuthField label="Password" error={touched ? errors.pw : null}>
           <Input
             type="password"
             placeholder="••••••••••••"
@@ -172,12 +172,17 @@ function LoginForm() {
             onChange={(e) => setPw(e.target.value)}
             autoComplete="current-password"
           />
-        </Field>
+        </AuthField>
       </div>
 
       <Button type="submit" variant="primary" fullWidth disabled={submitting}>
         {submitting ? 'Signing in…' : 'Sign in'}
       </Button>
+
+      <p style={{ fontSize: 'var(--fs-body-sm)', color: 'var(--text-muted)', margin: 0, textAlign: 'center' }}>
+        New here?{' '}
+        <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 600 }}>Create an account</Link>
+      </p>
 
       <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-faint)', margin: 0, textAlign: 'center', lineHeight: 1.5 }}>
         Protected system. Unauthorized use is prohibited and monitored.

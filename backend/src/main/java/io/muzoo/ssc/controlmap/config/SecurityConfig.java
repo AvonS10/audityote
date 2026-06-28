@@ -38,7 +38,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/health").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                         .anyRequest().authenticated())
                 // Cookie-based CSRF for the SPA: readable XSRF-TOKEN cookie + raw token echoed in a header.
                 .csrf(csrf -> csrf
