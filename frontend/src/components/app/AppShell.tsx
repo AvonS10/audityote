@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
+import { getNotifications, type Notification } from '../../lib/notifications'
+import { relativeTime } from '../../lib/time'
 import { Avatar } from '../Avatar'
 import { CoyoteBadge, Habitat } from '../Coyote'
 import { Icon, type IconName } from '../Icon'
@@ -239,6 +241,125 @@ function AccountMenu() {
   )
 }
 
+function AlertItem({ n, onClick }: { n: Notification; onClick: () => void }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', flexDirection: 'column', gap: 4, width: '100%', padding: '10px 12px',
+        border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left',
+        background: hover ? 'var(--surface-inset)' : 'transparent',
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
+        <span className="font-mono text-muted" style={{ fontSize: 11 }}>{n.reference}</span>
+        <span className="text-strong" style={{ fontSize: 'var(--fs-body-sm)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</span>
+      </span>
+      <span className="text-muted" style={{ fontSize: 'var(--fs-caption)' }}>
+        Returned by {n.returnedBy} · {relativeTime(n.returnedAt)}
+      </span>
+      {n.comment ? (
+        <span className="text-body" style={{ fontSize: 'var(--fs-caption)', fontStyle: 'italic', color: 'var(--text-muted)', borderLeft: '2px solid var(--border-strong)', paddingLeft: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          “{n.comment}”
+        </span>
+      ) : null}
+    </button>
+  )
+}
+
+/** Return-notifications (#4): the bell badges the count of findings handed back to you; the dropdown
+ * lists each with the reviewer's comment and links to the finding. Refetched as you navigate. */
+function AlertsMenu() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [open, setOpen] = useState(false)
+  const [items, setItems] = useState<Notification[]>([])
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Refresh on mount and whenever the route changes, so the badge tracks reality (e.g. after resubmit).
+  useEffect(() => {
+    let active = true
+    getNotifications()
+      .then((n) => { if (active) setItems(n) })
+      .catch(() => { /* a stale badge is harmless; don't surface a chrome-level error */ })
+    return () => { active = false }
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const count = items.length
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        title="Alerts"
+        aria-label={count > 0 ? `Alerts (${count})` : 'Alerts'}
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 32, height: 32, borderRadius: 'var(--radius-sm)',
+          border: `1px solid ${open ? 'var(--border-default)' : 'var(--border-default)'}`,
+          background: open ? 'var(--surface-inset)' : 'var(--surface-card)', cursor: 'pointer', color: 'var(--text-muted)',
+        }}
+      >
+        <Icon name="bell" size={16} />
+        {count > 0 ? (
+          <span
+            style={{
+              position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, padding: '0 4px',
+              borderRadius: 9, background: 'var(--critical-600)', color: '#fff', fontSize: 10, fontWeight: 700,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-data)',
+              border: '1.5px solid var(--surface-card)',
+            }}
+          >
+            {count}
+          </span>
+        ) : null}
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          style={{
+            position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 60, width: 340,
+            background: 'var(--surface-card)', border: '1px solid var(--border-default)',
+            borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-pop)', overflow: 'hidden',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <span className="font-display text-strong" style={{ fontSize: 'var(--fs-body-sm)', fontWeight: 600 }}>Returned to you</span>
+            {count > 0 ? (
+              <span className="font-mono" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', background: 'var(--surface-inset)', padding: '1px 7px', borderRadius: 'var(--radius-pill)' }}>{count}</span>
+            ) : null}
+          </div>
+          {count === 0 ? (
+            <div className="text-muted" style={{ padding: '24px 16px', textAlign: 'center', fontSize: 'var(--fs-body-sm)' }}>
+              No findings awaiting your changes.
+            </div>
+          ) : (
+            <div style={{ maxHeight: 360, overflowY: 'auto', padding: 4 }}>
+              {items.map((n) => (
+                <AlertItem key={n.findingId} n={n} onClick={() => { setOpen(false); navigate(`/findings/${n.findingId}`) }} />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function TopBar({ title, theme, onToggleTheme }: { title: string; theme: 'sovereign' | 'carbon'; onToggleTheme: () => void }) {
   return (
     <header
@@ -281,24 +402,7 @@ function TopBar({ title, theme, onToggleTheme }: { title: string; theme: 'sovere
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)' }} />
           {theme === 'carbon' ? 'Carbon' : 'Sovereign'}
         </button>
-        <button
-          type="button"
-          title="Alerts"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 32,
-            height: 32,
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-default)',
-            background: 'var(--surface-card)',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-          }}
-        >
-          <Icon name="bell" size={16} />
-        </button>
+        <AlertsMenu />
         <span style={{ width: 1, height: 22, background: 'var(--border-subtle)', margin: '0 2px' }} />
         <AccountMenu />
       </div>

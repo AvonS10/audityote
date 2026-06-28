@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getFrameworks } from '../lib/catalog'
 import { getFindings, type FindingFilters, type FindingSummary } from '../lib/findings'
+import { getNotifications } from '../lib/notifications'
 import { relativeTime } from '../lib/time'
 import { Avatar } from '../components/Avatar'
 import { ExportMenu } from '../components/ExportMenu'
@@ -43,10 +44,14 @@ export function Dashboard() {
   const [total, setTotal] = useState(0)
   const [frameworkOptions, setFrameworkOptions] = useState([{ value: '', label: 'All frameworks' }])
   const [status, setStatus] = useState<Status>('loading')
+  const [returnedToMe, setReturnedToMe] = useState(0)
 
   useEffect(() => {
     getFrameworks()
       .then((fws) => setFrameworkOptions([{ value: '', label: 'All frameworks' }, ...fws.map((f) => ({ value: f.slug, label: f.name }))]))
+      .catch(() => {})
+    getNotifications()
+      .then((n) => setReturnedToMe(n.length))
       .catch(() => {})
   }, [])
 
@@ -71,6 +76,13 @@ export function Dashboard() {
     setFilters((f) => ({ ...f, [key]: value || undefined }))
 
   const showDeleted = !!filters.deleted
+  const showReturnedToMe = !!filters.mine && filters.status === 'returned'
+  const toggleReturnedToMe = () =>
+    setFilters((f) =>
+      showReturnedToMe
+        ? { ...f, mine: undefined, status: undefined }
+        : { ...f, mine: true, status: 'returned', deleted: undefined },
+    )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -88,6 +100,14 @@ export function Dashboard() {
         <Select value={filters.status ?? ''} onChange={(e) => setFilter('status')(e.target.value)} options={STATUS_OPTIONS} />
         <Select value={filters.severity ?? ''} onChange={(e) => setFilter('severity')(e.target.value)} options={SEVERITY_OPTIONS} />
         <Select value={filters.framework ?? ''} onChange={(e) => setFilter('framework')(e.target.value)} options={frameworkOptions} />
+        <Button
+          variant={showReturnedToMe ? 'primary' : 'secondary'}
+          iconLeft="bell"
+          onClick={toggleReturnedToMe}
+          title="Findings a reviewer returned to you for changes"
+        >
+          Returned to me{returnedToMe > 0 ? ` · ${returnedToMe}` : ''}
+        </Button>
         <Button
           variant={showDeleted ? 'primary' : 'secondary'}
           iconLeft="trash"
