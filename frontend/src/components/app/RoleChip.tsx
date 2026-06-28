@@ -1,9 +1,14 @@
-import { Icon } from '../Icon'
+import { Icon, type IconName } from '../Icon'
 
-/** Role pill — Reviewer (shield-check) / Analyst (file-text). Ported from the design AppShell. */
+const ROLES: Record<string, { label: string; icon: IconName }> = {
+  ADMIN: { label: 'Admin', icon: 'settings' },
+  REVIEWER: { label: 'Reviewer', icon: 'shield-check' },
+  ANALYST: { label: 'Analyst', icon: 'file-text' },
+}
+
+/** Role pill — Admin / Reviewer / Analyst. Ported from the design AppShell. */
 export function RoleChip({ role, onDark = false }: { role: string; onDark?: boolean }) {
-  const isReviewer = role.toUpperCase() === 'REVIEWER'
-  const label = isReviewer ? 'Reviewer' : 'Analyst'
+  const r = ROLES[role.toUpperCase()] ?? ROLES.ANALYST
   return (
     <span
       style={{
@@ -22,8 +27,8 @@ export function RoleChip({ role, onDark = false }: { role: string; onDark?: bool
         border: onDark ? 'none' : '1px solid var(--primary-soft-border)',
       }}
     >
-      <Icon name={isReviewer ? 'shield-check' : 'file-text'} size={11} />
-      {label}
+      <Icon name={r.icon} size={11} />
+      {r.label}
     </span>
   )
 }

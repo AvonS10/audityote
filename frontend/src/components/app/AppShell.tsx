@@ -14,6 +14,7 @@ interface NavEntry {
   label: string
   end?: boolean
   reviewerOnly?: boolean
+  adminOnly?: boolean
 }
 
 const NAV: NavEntry[] = [
@@ -22,6 +23,7 @@ const NAV: NavEntry[] = [
   { to: '/coverage', icon: 'map', label: 'Control Coverage' },
   { to: '/posture', icon: 'trending-up', label: 'Risk Posture' },
   { to: '/reviews', icon: 'clipboard-check', label: 'Review Queue', reviewerOnly: true },
+  { to: '/users', icon: 'settings', label: 'Users', adminOnly: true },
 ]
 
 function isActive(pathname: string, entry: NavEntry): boolean {
@@ -79,8 +81,8 @@ function NavItem({ entry, active }: { entry: NavEntry; active: boolean }) {
 function Sidebar() {
   const { user } = useAuth()
   const location = useLocation()
-  const isReviewer = user?.role.toUpperCase() === 'REVIEWER'
-  const items = NAV.filter((n) => !n.reviewerOnly || isReviewer)
+  const role = user?.role.toUpperCase()
+  const items = NAV.filter((n) => (!n.reviewerOnly || role === 'REVIEWER') && (!n.adminOnly || role === 'ADMIN'))
 
   return (
     <aside

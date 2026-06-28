@@ -9,6 +9,7 @@ import { FindingForm } from './pages/FindingForm'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { AccountSettings } from './pages/AccountSettings'
+import { UsersAdmin } from './pages/UsersAdmin'
 import { ReviewQueue } from './pages/ReviewQueue'
 import { RiskPosture } from './pages/RiskPosture'
 
@@ -38,6 +39,7 @@ function App() {
         <Route path="/posture" element={<RiskPosture />} />
         <Route path="/reviews" element={<ReviewQueue />} />
         <Route path="/account" element={<AccountSettings />} />
+        <Route path="/users" element={<UsersAdmin />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
