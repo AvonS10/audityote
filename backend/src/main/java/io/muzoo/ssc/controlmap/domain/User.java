@@ -35,6 +35,10 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    /** Offboarding: a deactivated user cannot authenticate and is force-logged-out (#admin). */
+    @Column(nullable = false)
+    private boolean active = true;
+
     protected User() {
         // JPA
     }
@@ -80,5 +84,13 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

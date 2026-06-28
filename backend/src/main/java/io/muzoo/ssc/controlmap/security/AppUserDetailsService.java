@@ -27,6 +27,7 @@ public class AppUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("No user for email"));
         return org.springframework.security.core.userdetails.User.withUsername(user.getEmail())
                 .password(user.getPasswordHash())
+                .disabled(!user.isActive())   // deactivated users cannot authenticate (#admin offboarding)
                 .authorities(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
                 .build();
     }

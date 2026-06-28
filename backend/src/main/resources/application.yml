@@ -50,6 +50,10 @@ seed:
     name: ${SEED_REVIEWER_NAME:Demo Reviewer}
     email: ${SEED_REVIEWER_EMAIL:}
     password: ${SEED_REVIEWER_PASSWORD:}
+  admin:
+    name: ${SEED_ADMIN_NAME:Demo Admin}
+    email: ${SEED_ADMIN_EMAIL:}
+    password: ${SEED_ADMIN_PASSWORD:}
 
 server:
   port: 8080

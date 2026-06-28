@@ -46,6 +46,8 @@ services:
       SEED_ANALYST_PASSWORD: ${SEED_ANALYST_PASSWORD}
       SEED_REVIEWER_EMAIL: ${SEED_REVIEWER_EMAIL}
       SEED_REVIEWER_PASSWORD: ${SEED_REVIEWER_PASSWORD}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
       # Self-registration: company email domains allowed to sign up (empty = registration disabled).
       SIGNUP_ALLOWED_DOMAINS: ${SIGNUP_ALLOWED_DOMAINS:-}
       # AI-assisted control mapping (stretch — off by default)

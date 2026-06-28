@@ -1,5 +1,7 @@
 package io.muzoo.ssc.controlmap.config;
 
+import io.muzoo.ssc.controlmap.repository.UserRepository;
+import io.muzoo.ssc.controlmap.security.ActiveUserFilter;
 import io.muzoo.ssc.controlmap.security.CsrfCookieFilter;
 import io.muzoo.ssc.controlmap.security.RestAuthenticationEntryPoint;
 import io.muzoo.ssc.controlmap.security.SpaCsrfTokenRequestHandler;
@@ -28,9 +30,11 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 public class SecurityConfig {
 
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
+    private final UserRepository users;
 
-    public SecurityConfig(RestAuthenticationEntryPoint authenticationEntryPoint) {
+    public SecurityConfig(RestAuthenticationEntryPoint authenticationEntryPoint, UserRepository users) {
         this.authenticationEntryPoint = authenticationEntryPoint;
+        this.users = users;
     }
 
     @Bean
@@ -45,6 +49,8 @@ public class SecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
+                // Reject a deactivated user's still-open session on its next request (#admin offboarding).
+                .addFilterAfter(new ActiveUserFilter(users, authenticationEntryPoint), BasicAuthenticationFilter.class)
                 // Sessions (cookie) hold the auth — created on demand (e.g. at login).
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))

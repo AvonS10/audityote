@@ -102,6 +102,7 @@ public class DataSeeder implements ApplicationRunner {
         int userCount = 0;
         userCount += seedUser(seedProperties.getAnalyst(), Role.ANALYST);
         userCount += seedUser(seedProperties.getReviewer(), Role.REVIEWER);
+        userCount += seedUser(seedProperties.getAdmin(), Role.ADMIN);
 
         int findingCount = seedSampleFindings();
 
@@ -207,7 +208,11 @@ public class DataSeeder implements ApplicationRunner {
     }
 
     private static String defaultName(Role role) {
-        return role == Role.REVIEWER ? "Demo Reviewer" : "Demo Analyst";
+        return switch (role) {
+            case REVIEWER -> "Demo Reviewer";
+            case ADMIN -> "Demo Admin";
+            case ANALYST -> "Demo Analyst";
+        };
     }
 
     private static boolean isBlank(String value) {
