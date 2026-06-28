@@ -8,6 +8,7 @@ import { FindingDetailScreen } from './pages/FindingDetailScreen'
 import { FindingForm } from './pages/FindingForm'
 import { Login } from './pages/Login'
 import { Placeholder } from './pages/Placeholder'
+import { ReviewQueue } from './pages/ReviewQueue'
 
 /**
  * Top-level routes. /login is public; everything else is gated by ProtectedRoute and rendered
@@ -32,7 +33,7 @@ function App() {
         <Route path="/catalog" element={<ControlCatalog />} />
         <Route path="/coverage" element={<ControlCoverage />} />
         <Route path="/posture" element={<Placeholder title="Risk Posture" note="The risk posture dashboard arrives in build increment #19." />} />
-        <Route path="/reviews" element={<Placeholder title="Review Queue" note="The reviewer sign-off queue arrives in build increment #17." />} />
+        <Route path="/reviews" element={<ReviewQueue />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

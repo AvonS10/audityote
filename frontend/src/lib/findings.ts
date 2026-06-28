@@ -108,3 +108,6 @@ export const removeControlMapping = (findingId: string | number, controlId: numb
 /** Perform a role-gated workflow transition (PLAN §8). Returns the updated finding. */
 export const transitionFinding = (findingId: string | number, action: string, comment?: string) =>
   api.post<FindingDetail>(`/findings/${findingId}/transition`, { action, comment })
+
+/** Reviewer-only sign-off queue (#17): SUBMITTED findings awaiting a decision, oldest first. */
+export const getReviewQueue = () => api.get<FindingSummary[]>('/reviews/queue')

@@ -169,7 +169,24 @@ if (REVIEWER_EMAIL && REVIEWER_PASSWORD) {
   await page.click('button[type="submit"]')
   await page.waitForURL(`${BASE}/`, { timeout: 10000 })
   await page.waitForLoadState('networkidle')
+
+  // Review Queue (#17): reviewer-only two-pane sign-off screen.
+  await page.goto(`${BASE}/reviews`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await shot('review-queue')
+  // Return-for-changes dialog (comment required) from the sign-off panel.
+  const returnBtn = page.getByRole('button', { name: 'Return for changes' })
+  if ((await returnBtn.count()) > 0) {
+    await returnBtn.click()
+    await page.waitForTimeout(250)
+    await shot('review-queue-return')
+    await page.keyboard.press('Escape').catch(() => {})
+    await page.waitForTimeout(150)
+  }
+
   // Filter to submitted findings, open the first one.
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(300)
   await page.selectOption('select >> nth=0', 'submitted')
   await page.waitForTimeout(500)
   const row = page.locator('table.cm-findings tbody tr').first()
