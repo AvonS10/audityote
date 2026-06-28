@@ -39,6 +39,14 @@ public interface FindingRepository extends JpaRepository<Finding, Long> {
     List<Finding> findByStatusWithOwner(@Param("status") FindingStatus status, Sort sort);
 
     /**
+     * One lightweight row per active (not soft-deleted) finding — severity, status, last-updated —
+     * for the posture rollup (#19). Single query, no entity graph.
+     */
+    @Query("select new io.muzoo.ssc.controlmap.web.PostureRow(f.severity, f.status, f.updatedAt) "
+            + "from Finding f where f.deletedAt is null")
+    List<io.muzoo.ssc.controlmap.web.PostureRow> findPostureRows();
+
+    /**
      * Paged findings with optional filters (null = ignore). {@code deleted=false} returns active
      * findings; {@code deleted=true} returns the soft-deleted ones (the "Show deleted" view). The
      * owner is fetch-joined to avoid an N+1; the framework filter matches findings having a mapped
