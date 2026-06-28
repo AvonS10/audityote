@@ -232,7 +232,7 @@ function AccountMenu() {
             </div>
           </div>
           <div style={{ padding: 4 }}>
-            <AccountMenuItem icon="settings" label="Account settings" onClick={() => setOpen(false)} />
+            <AccountMenuItem icon="settings" label="Account settings" onClick={() => { setOpen(false); navigate('/account') }} />
             <AccountMenuItem icon="log-out" label="Sign out" danger onClick={signOut} />
           </div>
         </div>

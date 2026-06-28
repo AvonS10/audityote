@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard'
 import { FindingDetailScreen } from './pages/FindingDetailScreen'
 import { FindingForm } from './pages/FindingForm'
 import { Login } from './pages/Login'
+import { AccountSettings } from './pages/AccountSettings'
 import { ReviewQueue } from './pages/ReviewQueue'
 import { RiskPosture } from './pages/RiskPosture'
 
@@ -34,6 +35,7 @@ function App() {
         <Route path="/coverage" element={<ControlCoverage />} />
         <Route path="/posture" element={<RiskPosture />} />
         <Route path="/reviews" element={<ReviewQueue />} />
+        <Route path="/account" element={<AccountSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

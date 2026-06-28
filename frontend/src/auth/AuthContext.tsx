@@ -18,6 +18,8 @@ interface AuthContextValue {
   expired: boolean
   login: (email: string, password: string) => Promise<User>
   logout: () => Promise<void>
+  /** Re-fetch the signed-in user (e.g. after editing the profile) so the chrome reflects it. */
+  refresh: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -69,7 +71,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  return <AuthContext.Provider value={{ user, status, expired, login, logout }}>{children}</AuthContext.Provider>
+  const refresh = useCallback(async () => {
+    try {
+      setUser(await api.get<User>('/auth/me'))
+    } catch {
+      // Leave the current user in place; a 401 is handled by the unauthorized handler above.
+    }
+  }, [])
+
+  return <AuthContext.Provider value={{ user, status, expired, login, logout, refresh }}>{children}</AuthContext.Provider>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
