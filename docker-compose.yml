@@ -46,6 +46,8 @@ services:
       SEED_ANALYST_PASSWORD: ${SEED_ANALYST_PASSWORD}
       SEED_REVIEWER_EMAIL: ${SEED_REVIEWER_EMAIL}
       SEED_REVIEWER_PASSWORD: ${SEED_REVIEWER_PASSWORD}
+      # Self-registration: company email domains allowed to sign up (empty = registration disabled).
+      SIGNUP_ALLOWED_DOMAINS: ${SIGNUP_ALLOWED_DOMAINS:-}
       # AI-assisted control mapping (stretch — off by default)
       AI_SUGGESTIONS_ENABLED: ${AI_SUGGESTIONS_ENABLED:-false}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
