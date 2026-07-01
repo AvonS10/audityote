@@ -39,3 +39,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### WSL / Windows — "downloaded from the internet" alternate-data-stream marker ###
+*:Zone.Identifier
