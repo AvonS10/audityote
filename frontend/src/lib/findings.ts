@@ -116,6 +116,31 @@ export const addControlMapping = (findingId: string | number, controlId: number)
 export const removeControlMapping = (findingId: string | number, controlId: number) =>
   api.del<FindingDetail>(`/findings/${findingId}/controls/${controlId}`)
 
+/** A control the model suggests for a finding (id/framework/code/title mirror a catalog control). */
+export interface SuggestedControl {
+  id: number
+  framework: string
+  code: string
+  title: string
+  description: string | null
+  category: string | null
+}
+
+/** One AI control suggestion (stretch, PLAN §4/§7.12): a grounded control + confidence + one-line rationale. */
+export interface ControlSuggestion {
+  control: SuggestedControl
+  confidence: number
+  rationale: string
+}
+
+/** Request AI control suggestions for a finding. 503 when disabled/failed, 429 when rate-limited. */
+export const suggestControls = (findingId: string | number) =>
+  api.post<ControlSuggestion[]>(`/findings/${findingId}/suggest-controls`)
+
+/** Accept an AI suggestion — creates the mapping with server-stamped provenance. Returns the updated finding. */
+export const acceptSuggestion = (findingId: string | number, controlId: number) =>
+  api.post<FindingDetail>(`/findings/${findingId}/accept-suggestion`, { controlId })
+
 /** Perform a role-gated workflow transition (PLAN §8). Returns the updated finding. */
 export const transitionFinding = (findingId: string | number, action: string, comment?: string) =>
   api.post<FindingDetail>(`/findings/${findingId}/transition`, { action, comment })

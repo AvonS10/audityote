@@ -1,14 +1,18 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../lib/api'
+import { getConfig } from '../lib/config'
 import { getAllControls } from '../lib/catalog'
 import type { Control } from '../lib/catalog'
 import {
+  acceptSuggestion,
   addControlMapping,
   deleteFinding,
   getFinding,
   removeControlMapping,
+  suggestControls,
   transitionFinding,
+  type ControlSuggestion,
   type FindingDetail as FindingDetailData,
 } from '../lib/findings'
 import { formatDate, relativeTime } from '../lib/time'
@@ -189,8 +193,137 @@ function AddPanel({ allControls, mappedIds, onAdd, onClose }: { allControls: Con
   )
 }
 
-function ControlMapping({ finding, canEdit, onAdd, onRemove }: { finding: FindingDetailData; canEdit: boolean; onAdd: (id: number) => void; onRemove: (id: number) => void }) {
+function ConfidenceChip({ value }: { value: number }) {
+  return (
+    <span
+      className="font-mono"
+      title="Model confidence"
+      style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', background: 'var(--surface-inset)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '1px 6px', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}
+    >
+      {Math.round(value * 100)}%
+    </span>
+  )
+}
+
+function SuggestRowSkeleton() {
+  return (
+    <div className="animate-pulse" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+      <div style={{ width: 62, height: 18, borderRadius: 4, background: 'var(--surface-inset)' }} />
+      <div style={{ width: '40%', height: 12, borderRadius: 4, background: 'var(--surface-inset)' }} />
+      <div style={{ marginLeft: 'auto', width: 132, height: 26, borderRadius: 4, background: 'var(--surface-inset)' }} />
+    </div>
+  )
+}
+
+/**
+ * The AI "Suggest controls" panel (stretch, PLAN §7.12) — a small addition to the mapping panel. Fetches
+ * grounded suggestions, shows Skeletons while the call runs, then rows the analyst can Accept or Dismiss.
+ * On disabled/failed (503) or rate-limit (429) it shows a Banner with Retry; manual mapping is always
+ * available. Accepting funnels through the normal add-mapping flow — suggestions never bypass the workflow.
+ */
+function SuggestPanel({ findingId, mappedIds, onAccept, onClose }: { findingId: number; mappedIds: Set<number>; onAccept: (controlId: number) => Promise<void>; onClose: () => void }) {
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [items, setItems] = useState<ControlSuggestion[]>([])
+  const [errStatus, setErrStatus] = useState<number | undefined>(undefined)
+  const [accepting, setAccepting] = useState<number | null>(null)
+
+  const load = useCallback(() => {
+    setStatus('loading')
+    suggestControls(findingId)
+      .then((s) => {
+        setItems(s)
+        setStatus('ready')
+      })
+      .catch((err) => {
+        setErrStatus(err instanceof ApiError ? err.status : undefined)
+        setStatus('error')
+      })
+  }, [findingId])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  // Drop anything already mapped (e.g. one the analyst just accepted) so it leaves the list.
+  const visible = items.filter((s) => !mappedIds.has(s.control.id))
+
+  async function accept(controlId: number) {
+    setAccepting(controlId)
+    try {
+      await onAccept(controlId)
+    } finally {
+      setAccepting(null)
+    }
+  }
+
+  const bannerMsg =
+    errStatus === 503
+      ? 'AI suggestions aren’t available right now — you can still map controls manually.'
+      : errStatus === 429
+        ? 'Too many suggestion requests. Please wait a moment and try again.'
+        : 'Couldn’t fetch suggestions — you can still map controls manually.'
+
+  return (
+    <div style={{ marginTop: 14, border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--surface-card)', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 14px', background: 'var(--surface-inset)', borderBottom: '1px solid var(--border-subtle)' }}>
+        <Icon name="sparkles" size={15} color="var(--text-muted)" />
+        <span className="text-strong" style={{ fontSize: 'var(--fs-body-sm)', fontWeight: 600 }}>Suggested controls</span>
+        <span className="text-faint" style={{ fontSize: 'var(--fs-caption)' }}>AI-assisted · you decide</span>
+        <div style={{ marginLeft: 'auto' }}>
+          <MiniIconButton icon="x" title="Close" onClick={onClose} />
+        </div>
+      </div>
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {status === 'loading' ? (
+          <>
+            <SuggestRowSkeleton />
+            <SuggestRowSkeleton />
+            <SuggestRowSkeleton />
+          </>
+        ) : null}
+
+        {status === 'error' ? (
+          <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px', background: 'var(--surface-inset)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-body-sm)', color: 'var(--text-body)' }}>
+            <Icon name="alert-triangle" size={15} color="var(--text-muted)" />
+            <span>{bannerMsg}</span>
+            <div style={{ marginLeft: 'auto' }}>
+              <Button size="sm" variant="secondary" onClick={load}>Retry</Button>
+            </div>
+          </div>
+        ) : null}
+
+        {status === 'ready' && visible.length === 0 ? (
+          <div className="text-muted" style={{ padding: 18, textAlign: 'center', fontSize: 'var(--fs-body-sm)' }}>
+            No new control suggestions for this finding.
+          </div>
+        ) : null}
+
+        {status === 'ready'
+          ? visible.map((s) => (
+              <div key={s.control.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 10px 9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', background: 'var(--surface-card)' }}>
+                <FrameworkTag framework={s.control.framework} control={s.control.code} />
+                <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span className="text-strong" style={{ fontSize: 'var(--fs-body-sm)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.control.title}</span>
+                  <span className="text-muted" title={s.rationale} style={{ fontSize: 'var(--fs-caption)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.rationale}</span>
+                </div>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
+                  <ConfidenceChip value={s.confidence} />
+                  <Button size="sm" variant="primary" iconLeft="plus" disabled={accepting !== null} onClick={() => accept(s.control.id)}>
+                    {accepting === s.control.id ? 'Accepting…' : 'Accept'}
+                  </Button>
+                  <MiniIconButton icon="x" title="Dismiss" onClick={() => setItems((xs) => xs.filter((x) => x.control.id !== s.control.id))} />
+                </div>
+              </div>
+            ))
+          : null}
+      </div>
+    </div>
+  )
+}
+
+function ControlMapping({ finding, canEdit, aiEnabled, onAdd, onRemove, onAccept }: { finding: FindingDetailData; canEdit: boolean; aiEnabled: boolean; onAdd: (id: number) => void; onRemove: (id: number) => void; onAccept: (controlId: number) => Promise<void> }) {
   const [adding, setAdding] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
   const [allControls, setAllControls] = useState<Control[]>([])
 
   useEffect(() => {
@@ -208,9 +341,16 @@ function ControlMapping({ finding, canEdit, onAdd, onRemove }: { finding: Findin
       icon="map"
       action={
         canEdit ? (
-          <Button size="sm" variant={adding ? 'ghost' : 'primary'} iconLeft={adding ? 'x' : 'plus'} onClick={() => setAdding((a) => !a)}>
-            {adding ? 'Done' : 'Add control mapping'}
-          </Button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {aiEnabled ? (
+              <Button size="sm" variant="secondary" iconLeft="sparkles" onClick={() => setSuggesting((s) => !s)}>
+                {suggesting ? 'Hide suggestions' : 'Suggest controls'}
+              </Button>
+            ) : null}
+            <Button size="sm" variant={adding ? 'ghost' : 'primary'} iconLeft={adding ? 'x' : 'plus'} onClick={() => setAdding((a) => !a)}>
+              {adding ? 'Done' : 'Add control mapping'}
+            </Button>
+          </div>
         ) : null
       }
     >
@@ -242,6 +382,7 @@ function ControlMapping({ finding, canEdit, onAdd, onRemove }: { finding: Findin
         ) : null}
       </div>
       {adding ? <AddPanel allControls={allControls} mappedIds={mappedIds} onAdd={onAdd} onClose={() => setAdding(false)} /> : null}
+      {suggesting ? <SuggestPanel findingId={finding.id} mappedIds={mappedIds} onAccept={onAccept} onClose={() => setSuggesting(false)} /> : null}
     </SectionCard>
   )
 }
@@ -260,6 +401,7 @@ export function FindingDetailScreen() {
   const [deleting, setDeleting] = useState(false)
   const [returnOpen, setReturnOpen] = useState(false)
   const [confirmAction, setConfirmAction] = useState<WfAction | null>(null)
+  const [aiEnabled, setAiEnabled] = useState(false)
 
   useEffect(() => {
     getFinding(id!)
@@ -269,6 +411,13 @@ export function FindingDetailScreen() {
       })
       .catch(() => setLoad('error'))
   }, [id])
+
+  // Server capability check (PLAN §7.12): only show "Suggest controls" when the backend has AI enabled.
+  useEffect(() => {
+    getConfig()
+      .then((c) => setAiEnabled(c.aiSuggestionsEnabled))
+      .catch(() => setAiEnabled(false))
+  }, [])
 
   const isOwner = !!user && !!finding && user.name === finding.owner
   const isReviewer = user?.role === 'REVIEWER'
@@ -280,6 +429,16 @@ export function FindingDetailScreen() {
       setFinding(await promise)
     } catch (err) {
       toast({ tone: 'error', title: 'Action failed', message: err instanceof ApiError ? err.message : 'Something went wrong.' })
+    }
+  }
+
+  async function acceptSuggested(controlId: number) {
+    if (!finding) return
+    try {
+      setFinding(await acceptSuggestion(finding.id, controlId))
+      toast({ tone: 'success', title: 'Control mapped', message: 'Added from an AI suggestion.' })
+    } catch (err) {
+      toast({ tone: 'error', title: 'Couldn’t map control', message: err instanceof ApiError ? err.message : 'Something went wrong.' })
     }
   }
 
@@ -392,8 +551,10 @@ export function FindingDetailScreen() {
         <ControlMapping
           finding={finding}
           canEdit={canEdit}
+          aiEnabled={aiEnabled}
           onAdd={(controlId) => mutate(addControlMapping(finding.id, controlId))}
           onRemove={(controlId) => mutate(removeControlMapping(finding.id, controlId))}
+          onAccept={acceptSuggested}
         />
 
         <SectionCard title="Activity" icon="list-checks">
