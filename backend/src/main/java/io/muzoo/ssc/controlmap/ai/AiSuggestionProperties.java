@@ -29,6 +29,12 @@ public class AiSuggestionProperties {
     /** How many grounded suggestions to return at most, best-confidence first. */
     private int maxSuggestions = 6;
 
+    /** Per-user rate limit for the suggest-controls endpoint (calls per 60s window) — caps the AI bill. */
+    private int rateLimitPerMinute = 10;
+
+    /** How long a finding's suggestions are cached, so repeat clicks don't re-call the model. */
+    private int cacheTtlSeconds = 600;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -75,5 +81,21 @@ public class AiSuggestionProperties {
 
     public void setMaxSuggestions(int maxSuggestions) {
         this.maxSuggestions = maxSuggestions;
+    }
+
+    public int getRateLimitPerMinute() {
+        return rateLimitPerMinute;
+    }
+
+    public void setRateLimitPerMinute(int rateLimitPerMinute) {
+        this.rateLimitPerMinute = rateLimitPerMinute;
+    }
+
+    public int getCacheTtlSeconds() {
+        return cacheTtlSeconds;
+    }
+
+    public void setCacheTtlSeconds(int cacheTtlSeconds) {
+        this.cacheTtlSeconds = cacheTtlSeconds;
     }
 }

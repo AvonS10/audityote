@@ -1,5 +1,6 @@
 package io.muzoo.ssc.controlmap.web;
 
+import io.muzoo.ssc.controlmap.ai.MappingSuggestionException;
 import io.muzoo.ssc.controlmap.web.dto.ApiError;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -82,5 +83,20 @@ public class GlobalExceptionHandler {
         // e.g. a concurrent reference collision. Don't leak DB details.
         ApiError body = ApiError.of(HttpStatus.CONFLICT.value(), "Conflict", "The request conflicts with the current state. Please retry.");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(MappingSuggestionException.class)
+    public ResponseEntity<ApiError> handleAiUnavailable(MappingSuggestionException ex) {
+        // AI suggestions are off or the upstream call failed. Generic message — don't reveal which, and
+        // don't leak provider internals; the UI falls back to a Banner and manual mapping (PLAN §7.12).
+        ApiError body = ApiError.of(HttpStatus.SERVICE_UNAVAILABLE.value(), "Service Unavailable",
+                "Control suggestions are unavailable right now. You can still map controls manually.");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiError> handleTooManyRequests(TooManyRequestsException ex) {
+        ApiError body = ApiError.of(HttpStatus.TOO_MANY_REQUESTS.value(), "Too Many Requests", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
     }
 }

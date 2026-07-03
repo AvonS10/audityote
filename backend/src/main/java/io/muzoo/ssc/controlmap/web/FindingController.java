@@ -5,9 +5,11 @@ import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
 import io.muzoo.ssc.controlmap.web.dto.FindingRequest;
 import io.muzoo.ssc.controlmap.web.dto.FindingSummary;
 import io.muzoo.ssc.controlmap.web.dto.PagedResponse;
+import io.muzoo.ssc.controlmap.web.dto.SuggestionResponse;
 import io.muzoo.ssc.controlmap.web.dto.TransitionRequest;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,9 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class FindingController {
 
     private final FindingService findingService;
+    private final MappingSuggestionService mappingSuggestionService;
 
-    public FindingController(FindingService findingService) {
+    public FindingController(FindingService findingService,
+                             MappingSuggestionService mappingSuggestionService) {
         this.findingService = findingService;
+        this.mappingSuggestionService = mappingSuggestionService;
     }
 
     @GetMapping("/findings")
@@ -78,6 +83,16 @@ public class FindingController {
     @DeleteMapping("/findings/{id}/controls/{controlId}")
     public FindingDetail removeControl(@PathVariable Long id, @PathVariable Long controlId, Principal principal) {
         return findingService.removeControl(id, controlId, principal.getName());
+    }
+
+    /**
+     * AI control-mapping suggestions for a finding (stretch, PLAN §10). Owner-only and editable-state,
+     * rate-limited and cached; 503 when the feature is off or the model call fails (the UI falls back to
+     * manual mapping). Returns recommendations only — accepting one is the existing add-mapping action.
+     */
+    @PostMapping("/findings/{id}/suggest-controls")
+    public List<SuggestionResponse> suggestControls(@PathVariable Long id, Principal principal) {
+        return mappingSuggestionService.suggest(id, principal.getName());
     }
 
     @PostMapping("/findings/{id}/transition")
