@@ -39,6 +39,14 @@ controlmap:
     # Comma-separated company email domains allowed to self-register (new accounts default to ANALYST).
     # Empty (the default) = self-registration disabled. Set per-environment, e.g. audityote.pasin.dev.
     allowed-domains: ${SIGNUP_ALLOWED_DOMAINS:}
+  ai:
+    # AI-assisted control mapping (stretch, PLAN §4). OFF by default: with enabled=false no Claude
+    # client is built and no API key is needed — the graded core runs fully without AI. When enabled,
+    # api-key is a backend-only secret. The Claude API is billed separately from any Claude.ai plan.
+    enabled: ${AI_SUGGESTIONS_ENABLED:false}
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${ANTHROPIC_MODEL:claude-haiku-4-5-20251001}
+    max-suggestions: ${AI_MAX_SUGGESTIONS:6}
 
 # Demo-user seeding (DataSeeder). Real values come from the gitignored .env; blank = not seeded.
 seed:

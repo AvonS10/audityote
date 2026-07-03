@@ -24,7 +24,23 @@
         <!-- Override Spring Boot's managed pg driver (42.7.5) to patch HIGH CVEs
              CVE-2025-49146 (fixed 42.7.7) and CVE-2026-42198 (fixed 42.7.11). -->
         <postgresql.version>42.7.11</postgresql.version>
+        <!-- Spring AI (AI control-mapping stretch): pinned to the 1.0.x line, which targets
+             Spring Boot 3.4.x (1.1.x moved to Boot 3.5, 2.0.x to Boot 4) — matches our parent 3.4.2. -->
+        <spring-ai.version>1.0.5</spring-ai.version>
     </properties>
+
+    <!-- Spring AI BOM: manages the Spring AI modules and their transitive Anthropic Java SDK version. -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- REST API -->
@@ -75,6 +91,17 @@
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>3.0.3</version>
+        </dependency>
+
+        <!-- AI control-mapping (stretch, PLAN §4/§14 S1): Spring AI's Anthropic (Claude) module. It
+             calls the Anthropic Messages API natively (the 1.0.x line uses Spring AI's own RestClient
+             client; the official-SDK-backed rewrite is Spring AI 2.0, which needs Boot 4). The plain
+             module (not the -starter-) ships no auto-configuration, so no Claude client is built at
+             startup; AiConfig constructs one only when controlmap.ai.enabled=true, keeping the app
+             bootable with no ANTHROPIC_API_KEY (CI's case). -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-anthropic</artifactId>
         </dependency>
 
         <!-- Testing (JUnit 5, Mockito, Spring test, MockMvc) -->
