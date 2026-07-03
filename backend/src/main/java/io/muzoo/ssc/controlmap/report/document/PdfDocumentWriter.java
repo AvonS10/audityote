@@ -1,5 +1,6 @@
 package io.muzoo.ssc.controlmap.report.document;
 
+import io.muzoo.ssc.controlmap.report.PdfFooter;
 import io.muzoo.ssc.controlmap.report.PdfText;
 import io.muzoo.ssc.controlmap.report.ReportData.Column;
 import io.muzoo.ssc.controlmap.report.ReportFormat;
@@ -12,7 +13,6 @@ import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.PDPageContentStream.AppendMode;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
@@ -86,7 +86,7 @@ public class PdfDocumentWriter implements DocumentWriter {
     public byte[] write(ReportDocument document) {
         try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             new Renderer(doc).render(document);
-            addFooters(doc, document);
+            PdfFooter.apply(doc, document.title(), MARGIN, USABLE);
             doc.save(out);
             return out.toByteArray();
         } catch (IOException e) {
@@ -577,23 +577,4 @@ public class PdfDocumentWriter implements DocumentWriter {
         }
     }
 
-    /** Second pass once the page count is known: footer rule + running title + "Page N of M". */
-    private static void addFooters(PDDocument doc, ReportDocument document) throws IOException {
-        int total = doc.getNumberOfPages();
-        for (int i = 0; i < total; i++) {
-            PDPage page = doc.getPage(i);
-            try (PDPageContentStream cs = new PDPageContentStream(doc, page, AppendMode.APPEND, true, true)) {
-                cs.setStrokingColor(RULE);
-                cs.setLineWidth(0.5f);
-                cs.moveTo(MARGIN, MARGIN - 10);
-                cs.lineTo(MARGIN + USABLE, MARGIN - 10);
-                cs.stroke();
-                PdfText.draw(cs, BODY, 7, MUTED, MARGIN, MARGIN - 22,
-                        PdfText.sanitize("AuditYote - " + document.title()));
-                String pageNo = "Page " + (i + 1) + " of " + total;
-                PdfText.draw(cs, BODY, 7, MUTED,
-                        MARGIN + USABLE - PdfText.width(BODY, 7, pageNo), MARGIN - 22, pageNo);
-            }
-        }
-    }
 }

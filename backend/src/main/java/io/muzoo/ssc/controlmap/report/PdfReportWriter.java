@@ -18,10 +18,12 @@ import org.springframework.stereotype.Component;
 
 /**
  * Renders {@link ReportData} as a human-readable, printable A4-landscape PDF: a titled report with a
- * summary line, then a table whose columns are sized by each column's weight and whose long cells
- * <em>word-wrap</em> onto multiple lines (variable row height) — nothing is truncated. The header row
- * repeats on every page. Same input as {@link CsvReportWriter}: gather once, format many. PDF is the
- * presentation artifact (hand to an auditor); CSV stays the full machine-readable dump.
+ * summary line and a provenance meta block (generated when / by whom + classification), then a table
+ * whose columns are sized by each column's weight and whose long cells <em>word-wrap</em> onto
+ * multiple lines (variable row height) — nothing is truncated. The header row repeats on every page,
+ * and a second pass stamps the shared brand + page-number footer ({@link PdfFooter}). Same input as
+ * {@link CsvReportWriter}: gather once, format many. PDF is the presentation artifact (hand to an
+ * auditor); CSV stays the full machine-readable dump.
  */
 @Component
 public class PdfReportWriter implements ReportWriter {
@@ -33,6 +35,7 @@ public class PdfReportWriter implements ReportWriter {
     private static final float MARGIN = 36f;
     private static final float TITLE_SIZE = 15f;
     private static final float SUBTITLE_SIZE = 9f;
+    private static final float META_SIZE = 7.5f;
     private static final float HEADER_SIZE = 8.5f;
     private static final float BODY_SIZE = 8f;
     private static final float CELL_PAD_X = 4f;
@@ -68,9 +71,16 @@ public class PdfReportWriter implements ReportWriter {
             y -= TITLE_SIZE + 7;
             if (data.subtitle() != null && !data.subtitle().isBlank()) {
                 text(cs, BODY_FONT, SUBTITLE_SIZE, MUTED, MARGIN, y - SUBTITLE_SIZE, PdfText.sanitize(data.subtitle()));
-                y -= SUBTITLE_SIZE + 11;
+                y -= SUBTITLE_SIZE + (data.metaLines().isEmpty() ? 11 : 7);
             } else {
                 y -= 5;
+            }
+            for (String line : data.metaLines()) {
+                text(cs, BODY_FONT, META_SIZE, MUTED, MARGIN, y - META_SIZE, PdfText.sanitize(line));
+                y -= META_SIZE + 3.5f;
+            }
+            if (!data.metaLines().isEmpty()) {
+                y -= 7;
             }
             y = drawHeader(cs, headers, colX, colW, usable, y);
 
@@ -89,6 +99,7 @@ public class PdfReportWriter implements ReportWriter {
                 rule(cs, MARGIN, y, MARGIN + usable, y);
             }
             cs.close();
+            PdfFooter.apply(doc, data.title(), MARGIN, usable);
             doc.save(out);
             return out.toByteArray();
         } catch (IOException e) {

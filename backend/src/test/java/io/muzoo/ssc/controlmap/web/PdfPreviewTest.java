@@ -17,9 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Dev-only visual check, NOT part of the suite (guarded by {@code -Dpdf.preview=true}): renders the
- * posture report from the current dev database and writes each PDF page as a PNG under
- * {@code target/posture-preview/} so the layout can be eyeballed — the same "screenshot the result"
- * discipline used for screens, applied to the PDF artifact. PDFBox's own renderer; no extra tooling.
+ * posture report and the tabular registers (findings, audit log) from the current dev database and
+ * writes each PDF page as a PNG under {@code target/<name>-preview/} so the layout can be eyeballed —
+ * the same "screenshot the result" discipline used for screens, applied to the PDF artifacts.
+ * PDFBox's own renderer; no extra tooling.
  */
 @SpringBootTest
 @Transactional(readOnly = true)
@@ -27,14 +28,27 @@ import org.springframework.transaction.annotation.Transactional;
 class PdfPreviewTest {
 
     @Autowired private PostureReportService postureReportService;
+    @Autowired private ReportService reportService;
     @Autowired private UserRepository users;
 
     @Test
     void renderPostureReportPagesToPng() throws Exception {
-        String actor = users.findAll().stream().findFirst().map(u -> u.getEmail()).orElse("preview@local");
-        RenderedReport report = postureReportService.postureReport("pdf", actor);
+        renderPages(postureReportService.postureReport("pdf", anyActor()), "posture");
+    }
 
-        Path out = Path.of("target", "posture-preview");
+    @Test
+    void renderTabularReportPagesToPng() throws Exception {
+        String actor = anyActor();
+        renderPages(reportService.findingsReport("pdf", actor), "findings");
+        renderPages(reportService.auditReport("pdf", actor), "audit-log");
+    }
+
+    private String anyActor() {
+        return users.findAll().stream().findFirst().map(u -> u.getEmail()).orElse("preview@local");
+    }
+
+    private static void renderPages(RenderedReport report, String name) throws Exception {
+        Path out = Path.of("target", name + "-preview");
         Files.createDirectories(out);
         try (PDDocument doc = Loader.loadPDF(report.body())) {
             PDFRenderer renderer = new PDFRenderer(doc);
@@ -43,6 +57,6 @@ class PdfPreviewTest {
                 ImageIO.write(renderer.renderImageWithDPI(i, 110), "png", png);
             }
         }
-        Files.write(out.resolve("posture-preview.pdf"), report.body());
+        Files.write(out.resolve(name + "-preview.pdf"), report.body());
     }
 }

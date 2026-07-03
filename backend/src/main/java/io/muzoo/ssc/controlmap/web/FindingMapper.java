@@ -7,9 +7,11 @@ import io.muzoo.ssc.controlmap.domain.FindingStatus;
 import io.muzoo.ssc.controlmap.domain.Severity;
 import io.muzoo.ssc.controlmap.risk.RiskScore;
 import io.muzoo.ssc.controlmap.risk.RiskScoringService;
+import io.muzoo.ssc.controlmap.risk.RiskSource;
 import io.muzoo.ssc.controlmap.web.dto.ControlRef;
 import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
 import io.muzoo.ssc.controlmap.web.dto.FindingSummary;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.stereotype.Component;
@@ -77,6 +79,18 @@ public class FindingMapper {
                 entry.getToStatus() == null ? null : statusToWire(entry.getToStatus()),
                 entry.getComment(),
                 entry.getTimestamp());
+    }
+
+    /**
+     * Report-cell form of a finding's effective risk score: the number, with severity-derived scores
+     * marked {@code (der)} — the convention every report table shares (and the posture methodology
+     * explains). Blank when no score is available.
+     */
+    public static String riskToReportCell(BigDecimal riskScore, String riskSourceWire) {
+        if (riskScore == null) {
+            return "";
+        }
+        return riskScore.toPlainString() + (RiskSource.SEVERITY.wire().equals(riskSourceWire) ? " (der)" : "");
     }
 
     // ---- casing translation (enum <-> wire) ----

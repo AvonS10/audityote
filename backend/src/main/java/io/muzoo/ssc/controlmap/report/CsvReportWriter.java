@@ -7,7 +7,9 @@ import org.springframework.stereotype.Component;
 /**
  * RFC 4180 CSV writer: CRLF line endings, defensive quoting (incl. the formula-injection guard) and a
  * leading UTF-8 BOM so spreadsheets detect the encoding — the actual escaping lives in {@link CsvText},
- * shared with the document writer.
+ * shared with the document writer. Deliberately ignores the title/subtitle/provenance meta lines: the
+ * tabular CSV stays a clean header+rows table that loads straight into a spreadsheet; provenance is a
+ * presentation concern the PDF carries.
  */
 @Component
 public class CsvReportWriter implements ReportWriter {
