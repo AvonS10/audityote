@@ -1,5 +1,6 @@
 package io.muzoo.ssc.controlmap.web;
 
+import io.muzoo.ssc.controlmap.web.dto.AcceptSuggestionRequest;
 import io.muzoo.ssc.controlmap.web.dto.AddMappingRequest;
 import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
 import io.muzoo.ssc.controlmap.web.dto.FindingRequest;
@@ -93,6 +94,18 @@ public class FindingController {
     @PostMapping("/findings/{id}/suggest-controls")
     public List<SuggestionResponse> suggestControls(@PathVariable Long id, Principal principal) {
         return mappingSuggestionService.suggest(id, principal.getName());
+    }
+
+    /**
+     * Accept an AI-suggested control (stretch, PLAN §3/§4). The client sends only the controlId; the
+     * server stamps AI provenance itself from the suggestion it cached (server-authoritative), so the
+     * audit trail can't be spoofed. 409 if the control isn't a current suggestion for this finding.
+     */
+    @PostMapping("/findings/{id}/accept-suggestion")
+    public FindingDetail acceptSuggestion(@PathVariable Long id,
+                                          @Valid @RequestBody AcceptSuggestionRequest request,
+                                          Principal principal) {
+        return mappingSuggestionService.accept(id, request.controlId(), principal.getName());
     }
 
     @PostMapping("/findings/{id}/transition")

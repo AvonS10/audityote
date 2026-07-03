@@ -1,10 +1,12 @@
 package io.muzoo.ssc.controlmap.web;
 
+import io.muzoo.ssc.controlmap.ai.AiSuggestionProperties;
 import io.muzoo.ssc.controlmap.ai.MappingSuggestionException;
 import io.muzoo.ssc.controlmap.ai.MappingSuggestionStrategy;
 import io.muzoo.ssc.controlmap.domain.Control;
 import io.muzoo.ssc.controlmap.domain.Finding;
 import io.muzoo.ssc.controlmap.repository.ControlRepository;
+import io.muzoo.ssc.controlmap.web.dto.FindingDetail;
 import io.muzoo.ssc.controlmap.web.dto.SuggestionResponse;
 import java.util.List;
 import java.util.Optional;
@@ -34,17 +36,19 @@ public class MappingSuggestionService {
     private final CatalogMapper catalogMapper;
     private final SuggestionCache cache;
     private final SuggestionRateLimiter rateLimiter;
+    private final AiSuggestionProperties properties;
 
     public MappingSuggestionService(FindingService findingService, ControlRepository controls,
                                     ObjectProvider<MappingSuggestionStrategy> strategyProvider,
                                     CatalogMapper catalogMapper, SuggestionCache cache,
-                                    SuggestionRateLimiter rateLimiter) {
+                                    SuggestionRateLimiter rateLimiter, AiSuggestionProperties properties) {
         this.findingService = findingService;
         this.controls = controls;
         this.strategyProvider = strategyProvider;
         this.catalogMapper = catalogMapper;
         this.cache = cache;
         this.rateLimiter = rateLimiter;
+        this.properties = properties;
     }
 
     /**
@@ -80,5 +84,30 @@ public class MappingSuggestionService {
 
         cache.put(findingId, suggestions);
         return suggestions;
+    }
+
+    /**
+     * Accepts an AI-suggested control, creating an {@code AI_SUGGESTED} mapping (S2b). Provenance is
+     * <b>server-authoritative</b>: the control must be a current cached suggestion for this finding, and
+     * its confidence/rationale are copied from that cached suggestion (the model id from config) — never
+     * taken from the request. A control the server didn't suggest (or a suggestion that has since expired
+     * from the cache) is rejected, so the audit trail can only ever reflect genuine machine origin.
+     *
+     * @throws ConflictException if the control is not a current cached suggestion for the finding (→ 409)
+     */
+    @Transactional
+    public FindingDetail accept(Long findingId, Long controlId, String callerEmail) {
+        // Authorise first (404/403/409) so a non-owner learns nothing about another user's cache state.
+        findingService.requireSuggestable(findingId, callerEmail);
+
+        SuggestionResponse suggestion = cache.get(findingId).stream()
+                .flatMap(List::stream)
+                .filter(s -> s.control().id().equals(controlId))
+                .findFirst()
+                .orElseThrow(() -> new ConflictException("That control is not a current AI suggestion for "
+                        + "this finding. Re-run suggestions and try again."));
+
+        return findingService.addAiMapping(findingId, controlId, suggestion.confidence(),
+                suggestion.rationale(), properties.getModel(), callerEmail);
     }
 }

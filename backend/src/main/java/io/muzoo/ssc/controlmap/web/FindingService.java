@@ -200,15 +200,41 @@ public class FindingService {
             throw new ConflictException("That control is already mapped to this finding.");
         }
 
-        FindingControlMapping mapping = new FindingControlMapping(finding, control);
-        if (request.source() != null && MappingSource.AI_SUGGESTED.name().equalsIgnoreCase(request.source())) {
-            mapping.setSource(MappingSource.AI_SUGGESTED);
-            mapping.setAiConfidence(request.aiConfidence());
-            mapping.setAiRationale(request.aiRationale());
-            mapping.setAiModel(request.aiModel());
-        }
-        mappings.save(mapping);
+        // Manual mapping only — this path never sets AI provenance. AI-suggested mappings have exactly
+        // one door: addAiMapping (below), reached solely via the accept-suggestion flow (S2b), which
+        // stamps provenance server-side. That is what keeps the audit trail from being spoofed.
+        mappings.save(new FindingControlMapping(finding, control));
         events.publishEvent(new FindingAuditEvent(finding, finding.getOwner(), "mapped", null, null, controlRef(control)));
+        return detail(finding);
+    }
+
+    /**
+     * Creates an AI-provenance mapping — reached only through the accept-suggestion flow (S2b). Unlike
+     * {@link #addControl}, the provenance ({@code confidence}/{@code rationale}/{@code model}) is supplied
+     * by the server from the cached suggestion it produced, never by the client, so a mapping can't be
+     * dishonestly labelled AI-suggested. The audit note records the AI origin (Observer).
+     */
+    @Transactional
+    public FindingDetail addAiMapping(Long findingId, Long controlId, Double confidence, String rationale,
+                                      String model, String currentUserEmail) {
+        Finding finding = requireFinding(findingId);
+        requireOwner(finding, currentUserEmail);
+        requireEditable(finding);
+
+        Control control = controls.findById(controlId)
+                .orElseThrow(() -> new NotFoundException("Control not found: " + controlId));
+        if (mappings.existsByFinding_IdAndControl_Id(findingId, control.getId())) {
+            throw new ConflictException("That control is already mapped to this finding.");
+        }
+
+        FindingControlMapping mapping = new FindingControlMapping(finding, control);
+        mapping.setSource(MappingSource.AI_SUGGESTED);
+        mapping.setAiConfidence(confidence);
+        mapping.setAiRationale(rationale);
+        mapping.setAiModel(model);
+        mappings.save(mapping);
+        events.publishEvent(new FindingAuditEvent(finding, finding.getOwner(), "mapped", null, null,
+                controlRef(control) + " (AI-suggested)"));
         return detail(finding);
     }
 
