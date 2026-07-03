@@ -70,7 +70,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   })
 
   const text = await res.text()
-  const data = text ? JSON.parse(text) : undefined
+  let data: unknown = undefined
+  if (text) {
+    try {
+      data = JSON.parse(text)
+    } catch {
+      // Non-JSON body (e.g. an upstream proxy's HTML 502/504 page). Leave `data` undefined and fall
+      // through to status handling — otherwise the parse would throw before the 401 redirect could fire.
+    }
+  }
   if (!res.ok) {
     if (res.status === 401 && path !== '/auth/me' && path !== '/auth/login') {
       unauthorizedHandler?.()

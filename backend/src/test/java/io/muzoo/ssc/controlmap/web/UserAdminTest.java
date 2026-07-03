@@ -124,4 +124,14 @@ class UserAdminTest {
         // The ActiveUserFilter re-checks active on every request → the still-"authenticated" call is 401.
         mockMvc.perform(get("/api/findings")).andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @WithMockUser(username = "demoted@ua.test", roles = "ADMIN")
+    void staleRoleAuthorityIsForcedOut() throws Exception {
+        // Session was granted ROLE_ADMIN at login, but the account has since been demoted to ANALYST.
+        // The ActiveUserFilter re-checks the DB role each request → the stale-admin call is 401, so a
+        // demoted admin cannot keep exercising admin power on their live session (must re-authenticate).
+        users.save(new User("demoted@ua.test", "Demoted", encoder.encode("xpassword1"), Role.ANALYST));
+        mockMvc.perform(get("/api/users")).andExpect(status().isUnauthorized());
+    }
 }

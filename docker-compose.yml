@@ -20,7 +20,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      # Loopback-only: reachable from the host (psql, IDE) but never off-box. The deploy override
+      # clears this entirely (!reset []); binding to 127.0.0.1 here is defense-in-depth so a bare
+      # `docker compose up` can never expose Postgres on the LAN.
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -58,7 +61,9 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      # Loopback-only (same rationale as db): the SPA dev proxy hits localhost:8080; the deploy
+      # override clears this (!reset []) so nothing but the frontend is ever published.
+      - "127.0.0.1:8080:8080"
 
   frontend:
     profiles: ["app"]
