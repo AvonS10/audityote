@@ -41,6 +41,7 @@ class PdfPreviewTest {
         String actor = anyActor();
         renderPages(reportService.findingsReport("pdf", actor), "findings");
         renderPages(reportService.auditReport("pdf", actor), "audit-log");
+        renderPages(reportService.userAuditReport("pdf", actor), "user-audit-log");
     }
 
     private String anyActor() {

@@ -16,6 +16,9 @@ export const coverageReportPath = (framework: string, format: ReportFormat = 'cs
 
 export const auditReportPath = (format: ReportFormat = 'csv') => `/reports/audit?format=${format}`
 
+/** The admin user-management trail — the endpoint is ADMIN-only (403 otherwise). */
+export const userAuditReportPath = (format: ReportFormat = 'csv') => `/reports/user-audit?format=${format}`
+
 /** The comprehensive posture/auditor report — PDF is the primary artifact, CSV the raw-numbers companion. */
 export const postureReportPath = (format: ReportFormat = 'pdf') => `/reports/posture?format=${format}`
 

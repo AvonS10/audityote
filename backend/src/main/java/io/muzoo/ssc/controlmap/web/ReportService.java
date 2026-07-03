@@ -1,6 +1,7 @@
 package io.muzoo.ssc.controlmap.web;
 
 import io.muzoo.ssc.controlmap.domain.AuditLog;
+import io.muzoo.ssc.controlmap.domain.UserAuditLog;
 import io.muzoo.ssc.controlmap.report.ReportData;
 import io.muzoo.ssc.controlmap.report.ReportData.Column;
 import io.muzoo.ssc.controlmap.report.ReportFactory;
@@ -8,6 +9,7 @@ import io.muzoo.ssc.controlmap.report.ReportFormat;
 import io.muzoo.ssc.controlmap.report.RenderedReport;
 import io.muzoo.ssc.controlmap.repository.AuditLogRepository;
 import io.muzoo.ssc.controlmap.repository.FrameworkRepository;
+import io.muzoo.ssc.controlmap.repository.UserAuditLogRepository;
 import io.muzoo.ssc.controlmap.web.dto.ControlRef;
 import io.muzoo.ssc.controlmap.web.dto.CoverageRow;
 import io.muzoo.ssc.controlmap.web.dto.FindingSummary;
@@ -62,6 +64,16 @@ public class ReportService {
             new Column("To", 0.8f),
             new Column("Detail", 2.0f));
 
+    // Both parties of an admin action are identified by name AND immutable email (same policy as Actor).
+    private static final List<Column> USER_AUDIT_COLUMNS = List.of(
+            new Column("Timestamp", 1.5f),
+            new Column("Actor", 1.1f),
+            new Column("Actor email", 1.7f),
+            new Column("Action", 1.0f),
+            new Column("Target user", 1.1f),
+            new Column("Target email", 1.7f),
+            new Column("Detail", 1.6f));
+
     /** Fixed-precision UTC timestamps for audit rows — sortable in CSV, clean in the PDF, seconds kept. */
     private static final DateTimeFormatter AUDIT_TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'")
             .withZone(ZoneOffset.UTC);
@@ -73,16 +85,19 @@ public class ReportService {
     private final CoverageService coverageService;
     private final FrameworkRepository frameworks;
     private final AuditLogRepository auditLog;
+    private final UserAuditLogRepository userAudit;
     private final ReportFactory reportFactory;
     private final ReportProvenance provenance;
 
     public ReportService(FindingService findingService, CoverageService coverageService,
                          FrameworkRepository frameworks, AuditLogRepository auditLog,
-                         ReportFactory reportFactory, ReportProvenance provenance) {
+                         UserAuditLogRepository userAudit, ReportFactory reportFactory,
+                         ReportProvenance provenance) {
         this.findingService = findingService;
         this.coverageService = coverageService;
         this.frameworks = frameworks;
         this.auditLog = auditLog;
+        this.userAudit = userAudit;
         this.reportFactory = reportFactory;
         this.provenance = provenance;
     }
@@ -113,6 +128,19 @@ public class ReportService {
         ReportData data = new ReportData(coverageTitle(framework), coverageSummary(coverage),
                 meta(actorEmail), COVERAGE_COLUMNS, rows);
         return render("coverage-" + framework, fmt, data);
+    }
+
+    /** The admin user-management trail — access is ADMIN-gated at the controller. */
+    public RenderedReport userAuditReport(String format, String actorEmail) {
+        ReportFormat fmt = parseFormat(format);
+        List<UserAuditLog> entries = userAudit.findAllForExport();
+        List<List<String>> rows = entries.stream().map(ReportService::userAuditRow).toList();
+        long targets = entries.stream().map(a -> a.getTargetUser().getId()).distinct().count();
+        // Small counts are the norm here, so pluralize properly ("1 admin action across 1 user account").
+        String subtitle = entries.size() + (entries.size() == 1 ? " admin action" : " admin actions")
+                + " across " + targets + (targets == 1 ? " user account" : " user accounts");
+        return render("user-audit-log", fmt,
+                new ReportData("User management audit log", subtitle, meta(actorEmail), USER_AUDIT_COLUMNS, rows));
     }
 
     /** Provenance block for every export — the PDF renders it; the CSV stays a clean table without it. */
@@ -169,6 +197,17 @@ public class ReportService {
                 a.getFromStatus() == null ? "" : FindingMapper.statusToWire(a.getFromStatus()),
                 a.getToStatus() == null ? "" : FindingMapper.statusToWire(a.getToStatus()),
                 a.getComment() == null ? "" : a.getComment());
+    }
+
+    private static List<String> userAuditRow(UserAuditLog a) {
+        return List.of(
+                AUDIT_TS.format(a.getTimestamp()),
+                a.getActor().getName(),
+                a.getActor().getEmail(),
+                a.getAction(),
+                a.getTargetUser().getName(),
+                a.getTargetUser().getEmail(),
+                a.getDetail() == null ? "" : a.getDetail());
     }
 
     private static List<String> coverageRow(CoverageRow r) {

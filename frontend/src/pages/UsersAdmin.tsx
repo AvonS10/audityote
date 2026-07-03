@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { ApiError } from '../lib/api'
 import { changeUserRole, getUsers, resetUserPassword, setUserActive, type UserSummary } from '../lib/users'
+import { userAuditReportPath } from '../lib/reports'
 import { Avatar } from '../components/Avatar'
+import { ExportMenu } from '../components/ExportMenu'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -129,9 +131,13 @@ export function UsersAdmin() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1080 }}>
-      <div>
-        <h1 className="font-display text-strong" style={{ fontSize: 'var(--fs-h1)', fontWeight: 600, margin: 0, letterSpacing: '-0.01em' }}>Users</h1>
-        <p className="text-muted" style={{ fontSize: 'var(--fs-body-sm)', margin: '4px 0 0' }}>Manage roles and access. Deactivating a user revokes their access immediately.</p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <h1 className="font-display text-strong" style={{ fontSize: 'var(--fs-h1)', fontWeight: 600, margin: 0, letterSpacing: '-0.01em' }}>Users</h1>
+          <p className="text-muted" style={{ fontSize: 'var(--fs-body-sm)', margin: '4px 0 0' }}>Manage roles and access. Deactivating a user revokes their access immediately.</p>
+        </div>
+        {/* Admin-only trail of role changes, de/reactivations and password resets (endpoint is 403 for non-admins). */}
+        <ExportMenu reports={[{ label: 'User audit log', csvPath: userAuditReportPath('csv'), pdfPath: userAuditReportPath('pdf') }]} />
       </div>
 
       {load === 'loading' ? (
