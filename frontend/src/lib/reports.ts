@@ -16,6 +16,9 @@ export const coverageReportPath = (framework: string, format: ReportFormat = 'cs
 
 export const auditReportPath = (format: ReportFormat = 'csv') => `/reports/audit?format=${format}`
 
+/** The comprehensive posture/auditor report — PDF is the primary artifact, CSV the raw-numbers companion. */
+export const postureReportPath = (format: ReportFormat = 'pdf') => `/reports/posture?format=${format}`
+
 export async function downloadReport(path: string): Promise<void> {
   const res = await fetch(`${BASE}${path}`, { credentials: 'include' })
   if (!res.ok) {

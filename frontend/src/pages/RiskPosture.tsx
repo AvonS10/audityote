@@ -2,6 +2,8 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { bandFor, getPosture, POSTURE_BANDS, type HeatRow, type PostureResponse, type SeverityCount, type StatusCount } from '../lib/posture'
 import { Icon, type IconName } from '../components/Icon'
 import { Button } from '../components/ui/Button'
+import { ExportMenu } from '../components/ExportMenu'
+import { postureReportPath } from '../lib/reports'
 import { RiskMeter } from '../components/data/RiskMeter'
 import { StatCard } from '../components/data/StatCard'
 
@@ -327,9 +329,12 @@ export function RiskPosture() {
           <h1 className="font-display text-strong" style={{ fontSize: 'var(--fs-h1)', fontWeight: 600, margin: 0, letterSpacing: '-0.01em' }}>Risk posture</h1>
           <p className="text-muted" style={{ fontSize: 'var(--fs-body-sm)', margin: '4px 0 0' }}>Program-wide risk across {p.total} {p.total === 1 ? 'finding' : 'findings'}.</p>
         </div>
-        <Button variant={demo ? 'primary' : 'secondary'} iconLeft="trending-down" onClick={() => setDemo((d) => !d)}>
-          {demo ? 'Illustrative demo: on' : 'Illustrative demo: off'}
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ExportMenu reports={[{ label: 'Posture report', csvPath: postureReportPath('csv'), pdfPath: postureReportPath('pdf') }]} />
+          <Button variant={demo ? 'primary' : 'secondary'} iconLeft="trending-down" onClick={() => setDemo((d) => !d)}>
+            {demo ? 'Illustrative demo: on' : 'Illustrative demo: off'}
+          </Button>
+        </div>
       </div>
 
       {demo ? (

@@ -7,7 +7,7 @@ import { relativeTime } from '../lib/time'
 import { Avatar } from '../components/Avatar'
 import { ExportMenu } from '../components/ExportMenu'
 import { Icon } from '../components/Icon'
-import { auditReportPath, findingsReportPath } from '../lib/reports'
+import { auditReportPath, findingsReportPath, postureReportPath } from '../lib/reports'
 import { Button } from '../components/ui/Button'
 import { SearchInput } from '../components/ui/SearchInput'
 import { Select } from '../components/ui/Select'
@@ -124,6 +124,7 @@ export function Dashboard() {
             reports={[
               { label: 'Findings register', csvPath: findingsReportPath('csv'), pdfPath: findingsReportPath('pdf') },
               { label: 'Audit log', csvPath: auditReportPath('csv'), pdfPath: auditReportPath('pdf') },
+              { label: 'Posture report', csvPath: postureReportPath('csv'), pdfPath: postureReportPath('pdf') },
             ]}
           />
           <Button variant="primary" iconLeft="plus" onClick={() => navigate('/findings/new')}>
