@@ -26,12 +26,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class PostureService {
 
-    /** Findings counted toward the live posture (§9): not yet resolved/closed. */
-    private static final List<FindingStatus> ACTIVE = List.of(
+    /** Findings counted toward the live posture (§9): not yet resolved/closed. Package-visible so the
+     * posture report derives its insights from the same policy set (single source, no drift). */
+    static final List<FindingStatus> ACTIVE = List.of(
             FindingStatus.OPEN, FindingStatus.IN_PROGRESS, FindingStatus.SUBMITTED, FindingStatus.RETURNED);
 
-    /** Severity weights for the posture sum (§9 / §16 #5). */
-    private static final Map<Severity, Integer> WEIGHTS = new EnumMap<>(Map.of(
+    /** Severity weights for the posture sum (§9 / §16 #5). Package-visible — see {@link #ACTIVE}. */
+    static final Map<Severity, Integer> WEIGHTS = new EnumMap<>(Map.of(
             Severity.CRITICAL, 10, Severity.HIGH, 6, Severity.MEDIUM, 3, Severity.LOW, 1));
 
     /** Display order: Critical → Low for severity rows/bars. */
@@ -56,6 +57,11 @@ public class PostureService {
 
     public PostureResponse rollup() {
         return rollup(findings.findPostureRows(), Instant.now());
+    }
+
+    /** The configured posture cap (documented policy threshold) — the report's methodology cites it. */
+    int cap() {
+        return cap;
     }
 
     /** Pure computation over the projected rows — separated from the query so it is unit-testable. */

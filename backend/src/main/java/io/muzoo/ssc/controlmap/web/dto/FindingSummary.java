@@ -21,5 +21,6 @@ public record FindingSummary(
         String status,
         List<ControlRef> controls,
         String owner,
+        Instant createdAt,
         Instant updatedAt) {
 }

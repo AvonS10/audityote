@@ -42,6 +42,7 @@ public class FindingMapper {
                 statusToWire(finding.getStatus()),
                 controls,
                 finding.getOwner().getName(),
+                finding.getCreatedAt(),
                 finding.getUpdatedAt());
     }
 

@@ -64,10 +64,10 @@ public class PdfReportWriter implements ReportWriter {
             PDPageContentStream cs = new PDPageContentStream(doc, page);
 
             float y = pageSize.getHeight() - MARGIN;
-            text(cs, TITLE_FONT, TITLE_SIZE, TEXT, MARGIN, y - TITLE_SIZE, sanitize(data.title()));
+            text(cs, TITLE_FONT, TITLE_SIZE, TEXT, MARGIN, y - TITLE_SIZE, PdfText.sanitize(data.title()));
             y -= TITLE_SIZE + 7;
             if (data.subtitle() != null && !data.subtitle().isBlank()) {
-                text(cs, BODY_FONT, SUBTITLE_SIZE, MUTED, MARGIN, y - SUBTITLE_SIZE, sanitize(data.subtitle()));
+                text(cs, BODY_FONT, SUBTITLE_SIZE, MUTED, MARGIN, y - SUBTITLE_SIZE, PdfText.sanitize(data.subtitle()));
                 y -= SUBTITLE_SIZE + 11;
             } else {
                 y -= 5;
@@ -128,7 +128,7 @@ public class PdfReportWriter implements ReportWriter {
     private List<List<String>> wrapRow(List<String> cells, float[] colW, PDFont font, float size) throws IOException {
         List<List<String>> wrapped = new ArrayList<>(cells.size());
         for (int i = 0; i < cells.size(); i++) {
-            wrapped.add(wrap(sanitize(cells.get(i)), font, size, colW[i] - 2 * CELL_PAD_X));
+            wrapped.add(PdfText.wrap(PdfText.sanitize(cells.get(i)), font, size, colW[i] - 2 * CELL_PAD_X));
         }
         return wrapped;
     }
@@ -156,56 +156,9 @@ public class PdfReportWriter implements ReportWriter {
         }
     }
 
-    /** Greedy word-wrap to a column width; a single over-long word is hard-broken across lines. */
-    private static List<String> wrap(String value, PDFont font, float size, float maxWidth) throws IOException {
-        List<String> lines = new ArrayList<>();
-        String current = "";
-        for (String word : value.split("\\s+")) {
-            if (word.isEmpty()) {
-                continue;
-            }
-            while (textWidth(font, size, word) > maxWidth && word.length() > 1) {
-                if (!current.isEmpty()) {
-                    lines.add(current);
-                    current = "";
-                }
-                int cut = fitPrefix(word, font, size, maxWidth);
-                lines.add(word.substring(0, cut));
-                word = word.substring(cut);
-            }
-            String candidate = current.isEmpty() ? word : current + " " + word;
-            if (textWidth(font, size, candidate) <= maxWidth) {
-                current = candidate;
-            } else {
-                if (!current.isEmpty()) {
-                    lines.add(current);
-                }
-                current = word;
-            }
-        }
-        if (lines.isEmpty() || !current.isEmpty()) {
-            lines.add(current);
-        }
-        return lines;
-    }
-
-    /** Largest prefix length of {@code word} that fits {@code maxWidth} (at least 1 char). */
-    private static int fitPrefix(String word, PDFont font, float size, float maxWidth) throws IOException {
-        int i = 1;
-        while (i < word.length() && textWidth(font, size, word.substring(0, i + 1)) <= maxWidth) {
-            i++;
-        }
-        return i;
-    }
-
     private static void text(PDPageContentStream cs, PDFont font, float size, Color color, float x, float y, String value)
             throws IOException {
-        cs.beginText();
-        cs.setNonStrokingColor(color);
-        cs.setFont(font, size);
-        cs.newLineAtOffset(x, y);
-        cs.showText(value);
-        cs.endText();
+        PdfText.draw(cs, font, size, color, x, y, value);
     }
 
     private static void rule(PDPageContentStream cs, float x1, float y1, float x2, float y2) throws IOException {
@@ -214,40 +167,5 @@ public class PdfReportWriter implements ReportWriter {
         cs.moveTo(x1, y1);
         cs.lineTo(x2, y2);
         cs.stroke();
-    }
-
-    private static float textWidth(PDFont font, float size, String value) throws IOException {
-        return value.isEmpty() ? 0f : font.getStringWidth(value) / 1000f * size;
-    }
-
-    /**
-     * Maps text to what the Standard-14 fonts can encode: printable ASCII + Latin-1 pass through;
-     * common typographic punctuation (em/en dashes, the → arrow, smart quotes, ellipsis) is
-     * transliterated to ASCII so it renders cleanly instead of as '?'; anything else becomes '?'.
-     */
-    private static String sanitize(String value) {
-        if (value == null || value.isEmpty()) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder(value.length());
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (c == 0x2014 || c == 0x2013 || c == 0x2012 || c == 0x2212) {
-                sb.append('-');               // em / en / figure dash, minus sign
-            } else if (c == 0x2192) {
-                sb.append("->");              // right arrow (edit summaries: "low→critical")
-            } else if (c == 0x2018 || c == 0x2019 || c == 0x201A) {
-                sb.append('\'');              // smart single quotes
-            } else if (c == 0x201C || c == 0x201D || c == 0x201E) {
-                sb.append('"');               // smart double quotes
-            } else if (c == 0x2026) {
-                sb.append("...");             // ellipsis
-            } else if ((c >= 0x20 && c <= 0x7E) || (c >= 0xA0 && c <= 0xFF)) {
-                sb.append(c);
-            } else {
-                sb.append('?');
-            }
-        }
-        return sb.toString();
     }
 }
