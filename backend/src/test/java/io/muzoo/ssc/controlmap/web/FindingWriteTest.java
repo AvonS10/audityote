@@ -104,6 +104,15 @@ class FindingWriteTest {
 
     @Test
     @WithMockUser(username = OWNER)
+    void createRejectsCvssWithTwoDecimals() throws Exception {
+        // 7.44 previously slipped through and NUMERIC(3,1) silently rounded it (P1 hardening).
+        mockMvc.perform(post("/api/findings").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body("null", "7.44")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("cvss"));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER)
     void editingOpenMovesItToInProgress() throws Exception {
         Finding f = seed("CM-TEST-W101", FindingStatus.OPEN);
         mockMvc.perform(put("/api/findings/" + f.getId()).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body("\"medium\"", "null")))

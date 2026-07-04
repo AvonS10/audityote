@@ -9,9 +9,12 @@ import io.muzoo.ssc.controlmap.web.dto.PagedResponse;
 import io.muzoo.ssc.controlmap.web.dto.SuggestionResponse;
 import io.muzoo.ssc.controlmap.web.dto.TransitionRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.security.Principal;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api")
+@Validated
 public class FindingController {
 
     private final FindingService findingService;
@@ -48,8 +52,8 @@ public class FindingController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean deleted,
             @RequestParam(defaultValue = "false") boolean mine,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             Principal principal) {
         return findingService.list(status, severity, framework, q, deleted, mine, principal.getName(), page, size);
     }

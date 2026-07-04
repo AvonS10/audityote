@@ -135,6 +135,38 @@ class FindingControllerTest {
     }
 
     @Test
+    @WithMockUser
+    void negativePageReturns400NotServerError() throws Exception {
+        // Without the @Min(0) bound this reached PageRequest.of and surfaced as a 500 (P1 hardening).
+        mockMvc.perform(get("/api/findings").param("page", "-1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @WithMockUser
+    void oversizedPageSizeReturns400() throws Exception {
+        mockMvc.perform(get("/api/findings").param("size", "2000000000"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @WithMockUser
+    void zeroPageSizeReturns400() throws Exception {
+        mockMvc.perform(get("/api/findings").param("size", "0"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void maxPageSizeIsAccepted() throws Exception {
+        mockMvc.perform(get("/api/findings").param("size", "100"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void requiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/findings")).andExpect(status().isUnauthorized());
     }

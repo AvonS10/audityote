@@ -2,6 +2,7 @@ package io.muzoo.ssc.controlmap.web;
 
 import io.muzoo.ssc.controlmap.ai.MappingSuggestionException;
 import io.muzoo.ssc.controlmap.web.dto.ApiError;
+import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleMissingParam(MissingServletRequestParameterException ex) {
         ApiError body = ApiError.of(HttpStatus.BAD_REQUEST.value(), "Bad Request",
                 "Missing required parameter: " + ex.getParameterName());
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    /**
+     * Out-of-range request-parameter constraints (e.g. {@code page < 0}, {@code size > 100} on the
+     * findings list). {@code @Validated} on the controller validates these via method-level AOP, which
+     * raises {@link ConstraintViolationException}. Without this, a bad {@code page} reached
+     * {@code PageRequest.of} and surfaced as a 500 in Spring's default {@code /error} shape; here it
+     * becomes a consistent 400 {@link ApiError}.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException ex) {
+        ApiError body = ApiError.of(HttpStatus.BAD_REQUEST.value(), "Bad Request",
+                "One or more request parameters are out of range.");
         return ResponseEntity.badRequest().body(body);
     }
 
