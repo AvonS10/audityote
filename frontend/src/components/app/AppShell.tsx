@@ -30,6 +30,16 @@ function isActive(pathname: string, entry: NavEntry): boolean {
   return entry.end ? pathname === entry.to : pathname === entry.to || pathname.startsWith(`${entry.to}/`)
 }
 
+/** Breadcrumb title for the current route — NAV label, or a sensible label for routes not in the sidebar
+ * (account, finding detail) so those don't fall back to "Dashboard". */
+function pageTitle(pathname: string): string {
+  const nav = NAV.find((n) => isActive(pathname, n))
+  if (nav) return nav.label
+  if (pathname.startsWith('/account')) return 'Account settings'
+  if (pathname.startsWith('/findings')) return 'Findings'
+  return 'Dashboard'
+}
+
 function Brand() {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
@@ -416,7 +426,6 @@ function TopBar({ title, theme, onToggleTheme }: { title: string; theme: 'sovere
 export function AppShell() {
   const location = useLocation()
   const [theme, setTheme] = useState<'sovereign' | 'carbon'>('sovereign')
-  const current = NAV.find((n) => isActive(location.pathname, n))
 
   return (
     <div
@@ -426,7 +435,7 @@ export function AppShell() {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <TopBar
-          title={current?.label ?? 'Dashboard'}
+          title={pageTitle(location.pathname)}
           theme={theme}
           onToggleTheme={() => setTheme((t) => (t === 'carbon' ? 'sovereign' : 'carbon'))}
         />

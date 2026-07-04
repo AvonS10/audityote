@@ -196,10 +196,9 @@ public class ClaudeCatalogStrategy implements MappingSuggestionStrategy {
         if (!s.startsWith("```")) {
             return s;
         }
-        int firstNewline = s.indexOf('\n');
-        if (firstNewline >= 0) {
-            s = s.substring(firstNewline + 1); // drop the opening ``` / ```json line
-        }
+        // Drop the opening ``` plus an optional language tag and any following whitespace (covers both
+        // ```json\n[...] and a single-line ```json[...] with no newline), then the trailing ```.
+        s = s.replaceFirst("^```[a-zA-Z0-9]*\\s*", "");
         int lastFence = s.lastIndexOf("```");
         if (lastFence >= 0) {
             s = s.substring(0, lastFence);

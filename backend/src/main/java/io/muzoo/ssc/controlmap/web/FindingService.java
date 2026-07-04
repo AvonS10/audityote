@@ -282,7 +282,6 @@ public class FindingService {
         }
     }
 
-    /** Loads a finding for mutation: a soft-deleted finding is treated as gone (404). */
     /**
      * Loads a finding the caller may request AI control suggestions for (S2): it must exist, be owned by
      * the caller, and be in an editable state — the same gate as adding a mapping, since a suggestion is
@@ -296,6 +295,7 @@ public class FindingService {
         return finding;
     }
 
+    /** Loads a finding for mutation: a soft-deleted finding is treated as gone (404). */
     private Finding requireFinding(Long id) {
         Finding finding = requireExistingFinding(id);
         if (finding.isDeleted()) {

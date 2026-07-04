@@ -20,8 +20,11 @@ const ROLE_OPTIONS = [
 ]
 
 function genTempPassword(): string {
+  // Cryptographically-random temp password (not Math.random, which is predictable) — the admin hands it
+  // over once and the user changes it on first login.
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
-  return Array.from({ length: 14 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  const bytes = crypto.getRandomValues(new Uint8Array(14))
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('')
 }
 
 function StatusBadge({ active }: { active: boolean }) {

@@ -2,6 +2,7 @@ package io.muzoo.ssc.controlmap.web;
 
 import io.muzoo.ssc.controlmap.ai.AiSuggestionProperties;
 import io.muzoo.ssc.controlmap.web.dto.SuggestionResponse;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +36,8 @@ public class SuggestionCache {
             return Optional.empty();
         }
         if (System.currentTimeMillis() >= entry.expiresAt) {
-            cache.remove(findingId);
+            // remove(key, value): only drop this exact entry, not a fresher one a concurrent put stored.
+            cache.remove(findingId, entry);
             return Optional.empty();
         }
         return Optional.of(entry.suggestions);
@@ -43,8 +45,13 @@ public class SuggestionCache {
 
     /** Caches the suggestions for a finding until the TTL elapses. */
     public void put(Long findingId, List<SuggestionResponse> suggestions) {
-        if (cache.size() >= MAX_ENTRIES) {
+        // Bound the map to MAX_ENTRIES when adding a *new* finding: reclaim expired entries first, and if
+        // that's not enough, drop the oldest so the cap actually holds (expired-only eviction could exceed it).
+        if (cache.size() >= MAX_ENTRIES && !cache.containsKey(findingId)) {
             evictExpired();
+            if (cache.size() >= MAX_ENTRIES) {
+                evictOldest();
+            }
         }
         cache.put(findingId, new Entry(List.copyOf(suggestions), System.currentTimeMillis() + ttlMillis));
     }
@@ -57,6 +64,13 @@ public class SuggestionCache {
     private void evictExpired() {
         long now = System.currentTimeMillis();
         cache.values().removeIf(entry -> now >= entry.expiresAt);
+    }
+
+    /** Drops the entry closest to expiry (with a constant TTL, the oldest) — a last resort to hold the cap. */
+    private void evictOldest() {
+        cache.entrySet().stream()
+                .min(Comparator.comparingLong(e -> e.getValue().expiresAt))
+                .ifPresent(e -> cache.remove(e.getKey(), e.getValue()));
     }
 
     private record Entry(List<SuggestionResponse> suggestions, long expiresAt) {

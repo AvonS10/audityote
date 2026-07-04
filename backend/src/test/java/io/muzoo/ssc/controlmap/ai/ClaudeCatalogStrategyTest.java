@@ -77,6 +77,17 @@ class ClaudeCatalogStrategyTest {
     }
 
     @Test
+    void parsesResponseWrappedInSingleLineFenceWithoutNewline() {
+        // A fence with no newline after ```json — the opening tag must still be stripped.
+        String response = "```json[{\"code\":\"A03\",\"confidence\":0.7,\"rationale\":\"Injection.\"}]```";
+
+        List<ControlSuggestion> result = strategyReturning(response).suggest(finding(), CATALOG);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).control().getCode()).isEqualTo("A03");
+    }
+
+    @Test
     void toleratesObjectWrappingTheArray() {
         // Some models wrap the array in an object; the first array field is used.
         String response = "{\"suggestions\":[{\"code\":\"PR.AA\",\"confidence\":0.6,\"rationale\":\"Access control.\"}]}";
