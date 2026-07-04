@@ -1,8 +1,7 @@
 package io.muzoo.ssc.controlmap.ai;
 
-import org.springframework.ai.anthropic.AnthropicChatModel;
-import org.springframework.ai.anthropic.AnthropicChatOptions;
-import org.springframework.ai.anthropic.api.AnthropicApi;
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,8 +10,8 @@ import org.springframework.context.annotation.Configuration;
  * Wires the AI control-mapping beans — but <b>only when {@code controlmap.ai.enabled=true}</b>. With the
  * flag off (the default, and CI) none of these beans exist: no Claude client is constructed and no
  * {@code ANTHROPIC_API_KEY} is needed, so the app boots and the graded core runs with zero AI
- * dependency. Because the plain {@code spring-ai-anthropic} module ships no auto-configuration, this
- * class is the single, explicit place the Claude client is created (PLAN §4/§12).
+ * dependency. The official Anthropic Java SDK ships no auto-configuration, so this class is the single,
+ * explicit place the Claude client is created (PLAN §4/§12; C2).
  *
  * <p>When the flag is off, no {@link MappingSuggestionStrategy} bean is present; the suggest-controls
  * service (S2) treats that as "disabled" and returns {@code 503}.
@@ -22,25 +21,13 @@ import org.springframework.context.annotation.Configuration;
 public class AiConfig {
 
     @Bean
-    AnthropicApi anthropicApi(AiSuggestionProperties properties) {
-        return AnthropicApi.builder().apiKey(properties.getApiKey()).build();
+    AnthropicClient anthropicClient(AiSuggestionProperties properties) {
+        return AnthropicOkHttpClient.builder().apiKey(properties.getApiKey()).build();
     }
 
     @Bean
-    AnthropicChatModel anthropicChatModel(AnthropicApi anthropicApi, AiSuggestionProperties properties) {
-        return AnthropicChatModel.builder()
-                .anthropicApi(anthropicApi)
-                .defaultOptions(AnthropicChatOptions.builder()
-                        .model(properties.getModel())
-                        .temperature(properties.getTemperature())
-                        .maxTokens(properties.getMaxTokens())
-                        .build())
-                .build();
-    }
-
-    @Bean
-    SuggestionModelClient suggestionModelClient(AnthropicChatModel anthropicChatModel) {
-        return new SpringAiSuggestionModelClient(anthropicChatModel);
+    SuggestionModelClient suggestionModelClient(AnthropicClient anthropicClient, AiSuggestionProperties properties) {
+        return new AnthropicSdkSuggestionModelClient(anthropicClient, properties);
     }
 
     @Bean

@@ -21,7 +21,9 @@ public interface ControlRepository extends JpaRepository<Control, Long> {
      * returned entities can be read after the transaction closes. Backs the AI suggestion flow (S2),
      * which builds its prompt (and maps controls to DTOs) <em>outside</em> any transaction — the model
      * call must not pin a DB connection — where a lazy {@code framework} access would otherwise fail.
+     * Ordered by id so the rendered catalog prefix is byte-identical across calls, which is what lets
+     * Anthropic prompt caching reuse it (C2).
      */
-    @Query("select c from Control c join fetch c.framework")
+    @Query("select c from Control c join fetch c.framework order by c.id")
     List<Control> findAllWithFramework();
 }

@@ -44,14 +44,19 @@ public class ClaudeCatalogStrategy implements MappingSuggestionStrategy {
             return List.of(); // Nothing to ground against — no suggestions possible.
         }
 
-        String raw = client.complete(systemPrompt(), userPrompt(finding, catalog));
+        String raw = client.complete(systemPrompt(catalog), userPrompt(finding));
         JsonNode array = parseArray(raw);
         return ground(array, catalog);
     }
 
-    /** The instruction/contract prompt; the model must return a bare JSON array grounded to the catalog. */
-    private String systemPrompt() {
-        return """
+    /**
+     * The stable, cacheable prefix: the instruction/contract plus the whole control catalog to ground
+     * against. It is identical for every finding, so the SDK client marks it {@code cache_control:
+     * ephemeral} and Anthropic reuses it across calls (C2). Keep this byte-identical across calls — the
+     * catalog is fetched in a stable order for exactly that reason.
+     */
+    private String systemPrompt(List<Control> catalog) {
+        StringBuilder sb = new StringBuilder("""
                 You are a GRC (governance, risk and compliance) assistant that maps security findings to \
                 security controls. You are given ONE finding and a CATALOG of controls, each with a unique \
                 code. Choose the controls from the catalog that most directly mitigate or detect the finding.
@@ -62,19 +67,9 @@ public class ClaudeCatalogStrategy implements MappingSuggestionStrategy {
                 - Respond with ONLY a JSON array, no prose and no markdown code fences. Each element is:
                   {"code": "<catalog code>", "confidence": <number 0.0-1.0>, "rationale": "<one concise sentence>"}
                 - If nothing in the catalog is relevant, return [].
-                """.formatted(properties.getMaxSuggestions());
-    }
 
-    /** Describes the finding (full detail — §12 responsible-AI choice) and the catalog to ground against. */
-    private String userPrompt(Finding finding, List<Control> catalog) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("FINDING\n");
-        sb.append("Title: ").append(nullToEmpty(finding.getTitle())).append('\n');
-        sb.append("Severity: ").append(finding.getSeverity().name().toLowerCase(Locale.ROOT)).append('\n');
-        sb.append("Asset: ").append(describeAsset(finding.getAsset())).append('\n');
-        sb.append("Description:\n").append(nullToEmpty(finding.getDescription())).append("\n\n");
-
-        sb.append("CATALOG (code — framework — title)\n");
+                CATALOG (code — framework — title (category): description)
+                """.formatted(properties.getMaxSuggestions()));
         for (Control c : catalog) {
             sb.append(c.getCode()).append(" — ")
                     .append(c.getFramework().getName()).append(' ').append(c.getFramework().getVersion())
@@ -82,8 +77,24 @@ public class ClaudeCatalogStrategy implements MappingSuggestionStrategy {
             if (c.getCategory() != null && !c.getCategory().isBlank()) {
                 sb.append(" (").append(c.getCategory()).append(')');
             }
+            // The description gives the model each control's intent (better grounding) and enlarges the
+            // stable prefix past Haiku's 4096-token cache minimum, so prompt caching actually engages (C2).
+            if (c.getDescription() != null && !c.getDescription().isBlank()) {
+                sb.append(": ").append(c.getDescription());
+            }
             sb.append('\n');
         }
+        return sb.toString();
+    }
+
+    /** Describes the finding (full detail — §12 responsible-AI choice); the varying part of the prompt. */
+    private String userPrompt(Finding finding) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("FINDING\n");
+        sb.append("Title: ").append(nullToEmpty(finding.getTitle())).append('\n');
+        sb.append("Severity: ").append(finding.getSeverity().name().toLowerCase(Locale.ROOT)).append('\n');
+        sb.append("Asset: ").append(describeAsset(finding.getAsset())).append('\n');
+        sb.append("Description:\n").append(nullToEmpty(finding.getDescription()));
         return sb.toString();
     }
 
