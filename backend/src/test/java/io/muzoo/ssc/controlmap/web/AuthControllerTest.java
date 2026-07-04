@@ -1,5 +1,6 @@
 package io.muzoo.ssc.controlmap.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -63,6 +64,22 @@ class AuthControllerTest {
         mockMvc.perform(get("/api/auth/me").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(EMAIL));
+    }
+
+    @Test
+    void loginRotatesAPreExistingSessionId() throws Exception {
+        // Simulate a session the client already holds before authenticating (the fixation vector).
+        MockHttpSession preLogin = new MockHttpSession();
+        String idBeforeLogin = preLogin.getId();
+
+        MvcResult login = mockMvc.perform(post("/api/auth/login").with(csrf()).session(preLogin)
+                        .contentType(MediaType.APPLICATION_JSON).content(body(EMAIL, PASSWORD)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        MockHttpSession afterLogin = (MockHttpSession) login.getRequest().getSession(false);
+        assertThat(afterLogin).isNotNull();
+        assertThat(afterLogin.getId()).isNotEqualTo(idBeforeLogin);
     }
 
     @Test

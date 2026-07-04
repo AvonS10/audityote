@@ -74,6 +74,14 @@ public class AuthController {
 
     /** Persist the authenticated security context into the (cookie-backed) HTTP session. */
     private void startSession(Authentication authentication, HttpServletRequest req, HttpServletResponse res) {
+        // Session-fixation defense: rotate the session id at authentication so any id an attacker may have
+        // fixed on the victim before login is discarded. We authenticate in this controller rather than
+        // through a Spring Security authentication filter, so the framework's built-in rotation does not
+        // fire — we do it explicitly. Only an existing session can be rotated; if none exists, saveContext
+        // below mints a fresh (already-unfixated) one.
+        if (req.getSession(false) != null) {
+            req.changeSessionId();
+        }
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
