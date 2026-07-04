@@ -17,8 +17,15 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Orchestrates AI control suggestions for a finding (PLAN §4/§10) — the read side of the stretch
  * feature. Kept separate from {@link FindingService} (SRP): that owns finding CRUD; this owns the AI
- * concerns (enablement, rate limiting, caching, grounding-to-DTO). Runs {@code @Transactional} so the
- * catalog's lazy associations load while the strategy builds its prompt (a lesson from the live smoke test).
+ * concerns (enablement, rate limiting, caching, grounding-to-DTO).
+ *
+ * <p><b>The model call runs outside any transaction.</b> {@link #suggest} authorizes and loads its inputs
+ * in short, separate transactions (the owner check in {@link FindingService}; the catalog via
+ * {@link ControlRepository#findAllWithFramework()}, which fetches each control's framework so it stays
+ * readable once detached), then invokes the strategy with those detached inputs. This keeps the
+ * multi-second Claude call from pinning a Hikari connection for its whole duration — a class-level
+ * {@code @Transactional} here would hold one open across the network call and could exhaust the pool under
+ * concurrent uncached suggests. {@link #accept}, which only touches the DB, keeps its own transaction.
  *
  * <p><b>Enablement is bean presence:</b> the {@link MappingSuggestionStrategy} bean exists only when
  * {@code controlmap.ai.enabled=true} built it (S1's {@code AiConfig}). Absent → the feature is off; a
@@ -27,7 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
  * an analyst accepts one (S2b).
  */
 @Service
-@Transactional(readOnly = true)
 public class MappingSuggestionService {
 
     private final FindingService findingService;
@@ -76,7 +82,9 @@ public class MappingSuggestionService {
         // Only a real, uncached call counts against the rate limit.
         rateLimiter.checkAndConsume(callerEmail);
 
-        List<Control> catalog = controls.findAll();
+        // Fetch the catalog with frameworks so it (and the eager-fielded finding) stay readable while the
+        // strategy runs — the Claude call happens here, with no transaction/connection held open.
+        List<Control> catalog = controls.findAllWithFramework();
         List<SuggestionResponse> suggestions = strategy.suggest(finding, catalog).stream()
                 .map(s -> new SuggestionResponse(catalogMapper.toControlResponse(s.control()),
                         s.confidence(), s.rationale()))
