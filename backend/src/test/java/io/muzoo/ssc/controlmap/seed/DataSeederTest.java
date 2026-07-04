@@ -16,6 +16,8 @@ import io.muzoo.ssc.controlmap.repository.FindingControlMappingRepository;
 import io.muzoo.ssc.controlmap.repository.FindingRepository;
 import io.muzoo.ssc.controlmap.repository.FrameworkRepository;
 import io.muzoo.ssc.controlmap.repository.UserRepository;
+import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -63,15 +65,23 @@ class DataSeederTest {
         Framework iso = frameworks.findBySlug("iso27001").orElseThrow();
         Framework owasp = frameworks.findBySlug("owasp").orElseThrow();
         Framework nist = frameworks.findBySlug("nist").orElseThrow();
-        assertThat(controls.findByFramework_Id(iso.getId())).hasSize(15);
+        // Full frameworks: ISO/IEC 27001:2022 Annex A (93), OWASP Top 10 (10), NIST CSF 2.0 categories (22).
+        assertThat(controls.findByFramework_Id(iso.getId())).hasSize(93);
         assertThat(controls.findByFramework_Id(owasp.getId())).hasSize(10);
-        assertThat(controls.findByFramework_Id(nist.getId())).hasSize(12);
+        assertThat(controls.findByFramework_Id(nist.getId())).hasSize(22);
 
         // Controls carry the title/category/description from the JSON catalog.
         Control secureCoding = controls.findByFramework_IdAndCode(iso.getId(), "A.8.28").orElseThrow();
         assertThat(secureCoding.getTitle()).isEqualTo("Secure coding");
         assertThat(secureCoding.getCategory()).isEqualTo("Technological");
         assertThat(secureCoding.getDescription()).contains("Secure coding principles");
+
+        // Originals from the pre-expansion catalog are still present (no accidental drop during the split)…
+        assertThat(controls.findByFramework_IdAndCode(iso.getId(), "A.5.7")).isPresent();
+        assertThat(controls.findByFramework_IdAndCode(nist.getId(), "GV.OC")).isPresent();
+        // …and newly-added codes seeded too.
+        assertThat(controls.findByFramework_IdAndCode(iso.getId(), "A.5.1")).isPresent();
+        assertThat(controls.findByFramework_IdAndCode(nist.getId(), "GV.SC")).isPresent();
 
         // Demo user is created with a BCrypt hash (not plaintext) and the right role.
         User analyst = users.findByEmail("analyst@controlmap.test").orElseThrow();
@@ -99,5 +109,19 @@ class DataSeederTest {
         assertThat(frameworks.count()).isEqualTo(frameworksAfterFirst);
         assertThat(controls.count()).isEqualTo(controlsAfterFirst);
         assertThat(users.count()).isEqualTo(usersAfterFirst);
+    }
+
+    @Test
+    void catalogControlCodesAreUniqueAcrossFrameworks() {
+        // The AI grounding keys on the control code alone, so codes must be unique catalog-wide, not just
+        // within a framework (DataSeeder enforces this at load time; this pins the invariant). Scoped to the
+        // three seeded frameworks so it is unaffected by throwaway controls other tests leave in the dev DB.
+        newSeeder().seed();
+        List<String> codes = Stream.of("iso27001", "owasp", "nist")
+                .map(slug -> frameworks.findBySlug(slug).orElseThrow().getId())
+                .flatMap(id -> controls.findByFramework_Id(id).stream())
+                .map(Control::getCode)
+                .toList();
+        assertThat(codes).hasSize(125).doesNotHaveDuplicates();
     }
 }

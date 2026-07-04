@@ -1,0 +1,67 @@
+{
+  "slug": "owasp",
+  "name": "OWASP Top 10",
+  "version": "2025",
+  "controls": [
+    {
+      "code": "A01",
+      "title": "Broken access control",
+      "category": null,
+      "description": "Restrictions on what authenticated users may do are not properly enforced, allowing access to unauthorized functions or data."
+    },
+    {
+      "code": "A02",
+      "title": "Cryptographic failures",
+      "category": null,
+      "description": "Sensitive data is inadequately protected in transit or at rest due to missing or weak cryptography."
+    },
+    {
+      "code": "A03",
+      "title": "Injection",
+      "category": null,
+      "description": "Untrusted data is sent to an interpreter as part of a command or query, allowing execution of unintended commands (SQL, OS, XSS)."
+    },
+    {
+      "code": "A04",
+      "title": "Insecure design",
+      "category": null,
+      "description": "Missing or ineffective security controls arising from flaws in design and architecture rather than implementation."
+    },
+    {
+      "code": "A05",
+      "title": "Security misconfiguration",
+      "category": null,
+      "description": "Insecure default configurations, incomplete setups, or verbose error messages expose the application to attack."
+    },
+    {
+      "code": "A06",
+      "title": "Vulnerable & outdated components",
+      "category": null,
+      "description": "Use of components with known vulnerabilities, or that are unsupported and out of date."
+    },
+    {
+      "code": "A07",
+      "title": "Identification & authentication failures",
+      "category": null,
+      "description": "Weaknesses in authentication and session management that allow account compromise."
+    },
+    {
+      "code": "A08",
+      "title": "Software & data integrity failures",
+      "category": null,
+      "description": "Code and infrastructure that fail to protect against integrity violations, e.g. insecure deserialization or unsigned updates."
+    },
+    {
+      "code": "A09",
+      "title": "Security logging & monitoring failures",
+      "category": null,
+      "description": "Insufficient logging, detection and response that lets breaches go unnoticed."
+    },
+    {
+      "code": "A10",
+      "title": "Server-side request forgery (SSRF)",
+      "category": null,
+      "description": "The application fetches a remote resource without validating the user-supplied URL, enabling requests to unintended destinations."
+    }
+  ]
+}

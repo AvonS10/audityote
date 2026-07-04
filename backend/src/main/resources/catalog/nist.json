@@ -1,0 +1,139 @@
+{
+  "slug": "nist",
+  "name": "NIST CSF",
+  "version": "2.0",
+  "controls": [
+    {
+      "code": "GV.OC",
+      "title": "Organizational context",
+      "category": "Govern",
+      "description": "The circumstances surrounding the organization's cybersecurity risk management decisions are understood."
+    },
+    {
+      "code": "GV.RM",
+      "title": "Risk management strategy",
+      "category": "Govern",
+      "description": "Priorities, constraints, risk tolerance and assumptions are established and used to support operational risk decisions."
+    },
+    {
+      "code": "GV.RR",
+      "title": "Roles, responsibilities and authorities",
+      "category": "Govern",
+      "description": "Cybersecurity roles, responsibilities and authorities to foster accountability, performance assessment and continuous improvement are established and communicated."
+    },
+    {
+      "code": "GV.PO",
+      "title": "Policy",
+      "category": "Govern",
+      "description": "Organizational cybersecurity policy is established, communicated and enforced."
+    },
+    {
+      "code": "GV.OV",
+      "title": "Oversight",
+      "category": "Govern",
+      "description": "Results of organization-wide cybersecurity risk management activities and performance are used to inform, improve and adjust the risk management strategy."
+    },
+    {
+      "code": "GV.SC",
+      "title": "Cybersecurity supply chain risk management",
+      "category": "Govern",
+      "description": "Cyber supply chain risk management processes are identified, established, managed, monitored and improved by organizational stakeholders."
+    },
+    {
+      "code": "ID.AM",
+      "title": "Asset management",
+      "category": "Identify",
+      "description": "Assets (data, hardware, software, systems, people) are identified and managed consistent with their risk to objectives."
+    },
+    {
+      "code": "ID.RA",
+      "title": "Risk assessment",
+      "category": "Identify",
+      "description": "The cybersecurity risk to the organization, its assets and individuals is understood."
+    },
+    {
+      "code": "ID.IM",
+      "title": "Improvement",
+      "category": "Identify",
+      "description": "Improvements to organizational cybersecurity risk management processes, procedures and activities are identified across all functions."
+    },
+    {
+      "code": "PR.AA",
+      "title": "Identity management, authentication & access control",
+      "category": "Protect",
+      "description": "Access to assets is limited to authorized users, services and hardware, and managed commensurate with risk."
+    },
+    {
+      "code": "PR.AT",
+      "title": "Awareness and training",
+      "category": "Protect",
+      "description": "The organization's personnel are provided with cybersecurity awareness and training so they can perform their cybersecurity-related tasks."
+    },
+    {
+      "code": "PR.DS",
+      "title": "Data security",
+      "category": "Protect",
+      "description": "Data is managed consistent with the organization's risk strategy to protect confidentiality, integrity and availability."
+    },
+    {
+      "code": "PR.PS",
+      "title": "Platform security",
+      "category": "Protect",
+      "description": "The hardware, software and services of physical and virtual platforms are managed consistent with risk."
+    },
+    {
+      "code": "PR.IR",
+      "title": "Technology infrastructure resilience",
+      "category": "Protect",
+      "description": "Security architectures are managed to protect asset confidentiality, integrity, availability and resilience."
+    },
+    {
+      "code": "DE.CM",
+      "title": "Continuous monitoring",
+      "category": "Detect",
+      "description": "Assets are monitored to find anomalies, indicators of compromise and other potentially adverse events."
+    },
+    {
+      "code": "DE.AE",
+      "title": "Adverse event analysis",
+      "category": "Detect",
+      "description": "Anomalies, indicators of compromise and other adverse events are analysed to characterize them and detect incidents."
+    },
+    {
+      "code": "RS.MA",
+      "title": "Incident management",
+      "category": "Respond",
+      "description": "Responses to detected cybersecurity incidents are managed."
+    },
+    {
+      "code": "RS.AN",
+      "title": "Incident analysis",
+      "category": "Respond",
+      "description": "Investigations are conducted to ensure effective response and support forensics and recovery activities."
+    },
+    {
+      "code": "RS.CO",
+      "title": "Incident response reporting and communication",
+      "category": "Respond",
+      "description": "Response activities are coordinated with internal and external stakeholders as required by laws, regulations or policies."
+    },
+    {
+      "code": "RS.MI",
+      "title": "Incident mitigation",
+      "category": "Respond",
+      "description": "Activities are performed to prevent expansion of an event and mitigate its effects."
+    },
+    {
+      "code": "RC.RP",
+      "title": "Incident recovery plan execution",
+      "category": "Recover",
+      "description": "Restoration activities are performed to ensure operational availability of systems and services affected by an incident."
+    },
+    {
+      "code": "RC.CO",
+      "title": "Incident recovery communication",
+      "category": "Recover",
+      "description": "Restoration activities are coordinated with internal and external parties."
+    }
+  ]
+}

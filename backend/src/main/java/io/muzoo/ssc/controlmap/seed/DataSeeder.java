@@ -18,9 +18,12 @@ import io.muzoo.ssc.controlmap.repository.UserRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -31,9 +34,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Idempotent startup seeder. The compliance catalog (frameworks + controls) is read from the
- * {@code catalog/catalog.json} resource — editing that file is all it takes to add frameworks or
- * controls, no code change. Frameworks upsert by slug, controls by (framework, code) with their
+ * Idempotent startup seeder. The compliance catalog (frameworks + controls) is read from one JSON file
+ * per framework under {@code catalog/} — editing those files (or dropping in a new one and listing it in
+ * {@link #CATALOG_RESOURCES}) is all it takes to add frameworks or controls, no other code change. See
+ * {@code catalog/README.md}. Frameworks upsert by slug, controls by (framework, code) with their
  * title/description/category kept in sync with the JSON; demo users upsert by email. Safe on every
  * boot. Demo passwords are BCrypt-hashed via {@link PasswordEncoder}; raw passwords are never logged.
  */
@@ -41,7 +45,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class DataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
-    private static final String CATALOG_RESOURCE = "catalog/catalog.json";
+
+    /**
+     * One catalog file per framework, loaded in this order (also the framework display order on a fresh
+     * database). An explicit list — rather than a {@code catalog/*.json} glob — keeps loading deterministic
+     * and reliable inside the packaged (fat-jar) deployment. To add a framework, add its file here.
+     */
+    private static final List<String> CATALOG_RESOURCES =
+            List.of("catalog/iso27001.json", "catalog/owasp.json", "catalog/nist.json");
     private static final String FINDINGS_RESOURCE = "seed/findings.json";
 
     record Catalog(List<FrameworkSeed> frameworks) {
@@ -106,15 +117,45 @@ public class DataSeeder implements ApplicationRunner {
 
         int findingCount = seedSampleFindings();
 
-        log.info("Seed complete: {} frameworks, {} controls from {}; {} demo users created; {} sample findings created.",
-                frameworkCount, controlCount, CATALOG_RESOURCE, userCount, findingCount);
+        log.info("Seed complete: {} frameworks, {} controls from {} catalog files; {} demo users created; {} sample findings created.",
+                frameworkCount, controlCount, CATALOG_RESOURCES.size(), userCount, findingCount);
     }
 
     private Catalog loadCatalog() {
-        try (InputStream in = new ClassPathResource(CATALOG_RESOURCE).getInputStream()) {
-            return objectMapper.readValue(in, Catalog.class);
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read seed catalog " + CATALOG_RESOURCE, e);
+        List<FrameworkSeed> loaded = new ArrayList<>();
+        for (String resource : CATALOG_RESOURCES) {
+            try (InputStream in = new ClassPathResource(resource).getInputStream()) {
+                loaded.add(objectMapper.readValue(in, FrameworkSeed.class));
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to read seed catalog " + resource, e);
+            }
+        }
+        Catalog catalog = new Catalog(loaded);
+        requireUniqueControlCodes(catalog);
+        return catalog;
+    }
+
+    /**
+     * Control codes must be unique across the whole catalog: the AI grounding
+     * ({@code ClaudeCatalogStrategy}) keys suggestions on the code alone, so a code shared by two
+     * frameworks would let one silently shadow the other. Fail fast at boot if the catalog ever
+     * violates this as it grows (review 2026-07-04 #4).
+     */
+    private static void requireUniqueControlCodes(Catalog catalog) {
+        Set<String> seen = new HashSet<>();
+        List<String> duplicates = new ArrayList<>();
+        for (FrameworkSeed fw : catalog.frameworks()) {
+            for (ControlSeed c : fw.controls()) {
+                String key = c.code() == null ? "" : c.code().trim().toUpperCase(Locale.ROOT);
+                if (!seen.add(key)) {
+                    duplicates.add(c.code());
+                }
+            }
+        }
+        if (!duplicates.isEmpty()) {
+            throw new IllegalStateException(
+                    "Catalog control codes must be unique across all frameworks (AI grounding keys on the "
+                            + "code); duplicates found: " + duplicates);
         }
     }
 

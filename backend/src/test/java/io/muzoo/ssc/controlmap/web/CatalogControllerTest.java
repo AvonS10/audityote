@@ -36,8 +36,11 @@ class CatalogControllerTest {
     void listsControlsForAFramework() throws Exception {
         mockMvc.perform(get("/api/controls").param("framework", "iso27001"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(15))
+                .andExpect(jsonPath("$.length()").value(93))
                 .andExpect(jsonPath("$[0].framework").value("iso27001"))
+                // Natural code order, insertion-independent: A.5.1, A.5.2, … (not A.5.1, A.5.10, …).
+                .andExpect(jsonPath("$[0].code").value("A.5.1"))
+                .andExpect(jsonPath("$[1].code").value("A.5.2"))
                 .andExpect(jsonPath("$[?(@.code=='A.8.28')].category").value("Technological"));
     }
 

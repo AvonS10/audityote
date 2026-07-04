@@ -55,7 +55,10 @@ public class CoverageService {
             findingsByControl.computeIfAbsent(mapping.getControl().getId(), k -> new ArrayList<>())
                     .add(mapping.getFinding());
         }
+        // Natural code order (A.5.2 before A.5.10) so the grid is stable regardless of seed/insertion
+        // order — matches the Control Catalog screen (see CatalogService).
         return controls.findByFramework_SlugOrderByIdAsc(frameworkSlug).stream()
+                .sorted(Comparator.comparing(Control::getCode, CatalogService::compareNatural))
                 .map(control -> toRow(control, findingsByControl.getOrDefault(control.getId(), List.of())))
                 .toList();
     }
