@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -123,5 +125,28 @@ class SuggestControlsTest {
         mockMvc.perform(post(url).with(csrf())).andExpect(status().isOk());
 
         verify(strategy, times(1)).suggest(any(), any()); // the second call was served from cache
+    }
+
+    @Test
+    @WithMockUser(username = OWNER)
+    void editingTheFindingInvalidatesTheCacheSoTheNextSuggestRecallsTheModel() throws Exception {
+        when(strategy.suggest(any(), any())).thenReturn(List.of(new ControlSuggestion(a03, 0.8, "x")));
+        Finding f = seed("CM-SG-6", FindingStatus.OPEN);
+        String suggestUrl = "/api/findings/" + f.getId() + "/suggest-controls";
+
+        mockMvc.perform(post(suggestUrl).with(csrf())).andExpect(status().isOk());
+
+        // Edit the finding through the real write path: this publishes a FindingAuditEvent, which the
+        // SuggestionCacheInvalidator observes and uses to drop the now-stale cached suggestions.
+        mockMvc.perform(put("/api/findings/" + f.getId()).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"SQL injection (revised)\",\"description\":\"updated detail\","
+                                + "\"severity\":\"high\",\"cvss\":null,\"asset\":{\"name\":\"web\"}}"))
+                .andExpect(status().isOk());
+
+        // Cache was invalidated by the edit, so this is a fresh, uncached call → the model is asked again.
+        mockMvc.perform(post(suggestUrl).with(csrf())).andExpect(status().isOk());
+
+        verify(strategy, times(2)).suggest(any(), any());
     }
 }
