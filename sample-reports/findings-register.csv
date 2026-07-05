@@ -1,0 +1,28 @@
+﻿Reference,Title,Severity,CVSS,Risk,Status,Owner,Asset,Mapped controls,Updated
+CM-2025-0438,Verbose error messages leak stack traces,medium,5.3,5.3,submitted,Analyst Yote,Web Frontend,owasp:A09,2026-07-04
+CM-2026-0020,Password reset endpoint lacks rate limiting,high,7.1,7.1,remediated,Priya Sharma,auth-service,iso27001:A.8.5,2026-07-04
+CM-2026-0019,CSRF token missing on profile update,medium,,5.0 (der),in-progress,Diego Alvarez,account-web,"owasp:A01, iso27001:A.8.26",2026-07-04
+CM-2026-0018,Unencrypted PII at rest in the analytics store,high,7.1,7.1,returned,Priya Sharma,analytics-db,"owasp:A02, iso27001:A.5.34, nist:PR.DS",2026-07-04
+CM-2026-0017,Missing audit logging on privilege changes,medium,,5.0 (der),remediated,Tom Becker,iam-svc,"owasp:A09, iso27001:A.8.15, iso27001:A.8.16, nist:DE.CM",2026-07-04
+CM-2026-0016,Insecure deserialization in report import,high,8.8,8.8,accepted,Nadia Rahman,reporting-svc,"owasp:A08, iso27001:A.8.25",2026-07-04
+CM-2026-0015,Verbose stack traces leak internals,low,,2.0 (der),submitted,Analyst Yote,api-gateway,"owasp:A05, iso27001:A.8.9",2026-07-04
+CM-2026-0014,No rate limiting on the login endpoint,medium,5.3,5.3,in-progress,Diego Alvarez,auth-svc,"owasp:A07, iso27001:A.8.5",2026-07-04
+CM-2026-0013,Weak TLS configuration (TLS 1.0 enabled),medium,,5.0 (der),open,Priya Sharma,edge-lb,"owasp:A02, iso27001:A.8.24",2026-07-04
+CM-2026-0012,SSRF in webhook URL validation,high,8.2,8.2,approved,Tom Becker,integrations-svc,owasp:A10,2026-07-04
+CM-2026-0011,IDOR on document download,medium,6.5,6.5,returned,Nadia Rahman,docs-api,"owasp:A01, iso27001:A.5.15, iso27001:A.8.3",2026-07-04
+CM-2026-0010,Outdated Log4j dependency (CVE-2021-44228),critical,10.0,10.0,submitted,Analyst Yote,search-service,"owasp:A06, iso27001:A.8.8",2026-07-04
+CM-2026-0009,Hardcoded cloud credentials in the CI pipeline,critical,9.1,9.1,remediated,Diego Alvarez,ci-pipeline,"owasp:A05, iso27001:A.5.17, iso27001:A.8.24",2026-07-04
+CM-2026-0008,Missing MFA on the admin console,high,,7.5 (der),approved,Priya Sharma,admin-portal,"owasp:A07, iso27001:A.8.5, nist:PR.AA",2026-07-04
+CM-2026-0007,Stored XSS in comment field,high,7.4,7.4,submitted,Tom Becker,community-web,"owasp:A03, iso27001:A.8.28",2026-07-04
+CM-2026-0006,SQL injection in invoice search,high,8.6,8.6,approved,Nadia Rahman,billing-api,iso27001:A.8.28,2026-07-04
+CM-2025-0449,CSRF on customer profile update,medium,6.1,6.1,returned,Analyst Yote,Profile Service,owasp:A01,2026-06-28
+CM-2025-0414,Weak password complexity policy,low,3.9,3.9,approved,Analyst Yote,Identity,iso27001:A.5.17,2026-06-28
+CM-2025-0420,Insufficient logging in transaction service,low,3.4,3.4,accepted,Analyst Yote,Transactions,"nist:DE.AE, iso27001:A.8.15",2026-06-28
+CM-2025-0431,Excessive session timeout on retail banking,medium,4.8,4.8,in-progress,Analyst Yote,Retail Banking,iso27001:A.8.5,2026-06-28
+CM-2025-0444,Missing rate limiting on authentication endpoint,medium,6.5,6.5,remediated,Analyst Yote,Auth Service,"owasp:A07, nist:PR.AA",2026-06-28
+CM-2025-0455,Outdated TLS ciphers on public gateway,high,7.4,7.4,approved,Analyst Yote,Edge Gateway,"iso27001:A.8.24, nist:PR.DS",2026-06-28
+CM-2025-0461,Unrestricted file upload type on document intake,high,7.7,7.7,open,Analyst Yote,Document Intake,owasp:A04,2026-06-28
+CM-2025-0468,Missing MFA on internal admin console,high,8.2,8.2,submitted,Analyst Yote,Admin Console,"nist:PR.AA, iso27001:A.8.5",2026-06-28
+CM-2025-0472,SQL injection in legacy reporting module,critical,9.4,9.4,open,Analyst Yote,Reporting,"iso27001:A.8.28, owasp:A03",2026-06-28
+CM-2025-0479,Hardcoded API credentials in payments service,critical,9.1,9.1,open,Analyst Yote,Payments API,"iso27001:A.5.17, iso27001:A.8.24",2026-06-28
+CM-2025-0481,Stored XSS in customer statements export,critical,9.8,9.8,in-progress,Analyst Yote,Statements Portal,"owasp:A03, iso27001:A.8.28",2026-06-28

@@ -12,3 +12,7 @@
 *.gif  binary
 *.ico  binary
 *.jar  binary
+*.pdf  binary
+
+# Sample reports are real app output: RFC 4180 mandates CRLF, so keep the CSV byte-exact
+sample-reports/*.csv -text
