@@ -10,6 +10,17 @@ Live demo: https://audityote.pasin.dev
 
 Most teams track this in a spreadsheet. AuditYote replaces the spreadsheet with a multi-user system that keeps an audit trail, enforces who is allowed to approve what, scores risk, and shows where controls have gaps. It was built solo as a four-week university capstone for a systems software construction course, and the whole application is deployed and running over HTTPS.
 
+## Demo access
+
+The live app is open to explore without signing up. Sign in at [audityote.pasin.dev](https://audityote.pasin.dev) with one of the demo accounts below. They are throwaway logins on the demo instance, not real credentials.
+
+| Role     | Email                             | Password        |
+|----------|-----------------------------------|-----------------|
+| Analyst  | `analystdemo@audityote.pasin.dev`  | `AuditYoteDemo` |
+| Reviewer | `reviewerdemo@audityote.pasin.dev` | `AuditYoteDemo` |
+
+The part worth trying is separation of duties, which is enforced on the server. Sign in as the analyst and submit a finding for review, then sign in as the reviewer to approve or return it. The analyst cannot approve their own work, and the API rejects the attempt rather than just hiding the button. An admin role exists but is not published here.
+
 ## What it does
 
 AuditYote has three roles, and what you can do depends on yours.
