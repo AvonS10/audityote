@@ -1,0 +1,48 @@
+# ============================================================
+# Build & publish AuditYote container images to GHCR.
+#
+# Runs ONLY on the personal mirror (AvonS10/audityote) so the default GITHUB_TOKEN
+# can push to ghcr.io/avons10 with no PAT and no org-permission wall. On the org
+# repo (cs-muic/...) the job's `if` guard skips it (clean, no failing run).
+#
+# After the first successful run, make BOTH packages PUBLIC so the server pulls
+# with no `docker login`:
+#   GitHub → your profile → Packages → audityote-backend → Package settings →
+#   Change visibility → Public     (repeat for audityote-frontend)
+# Safe: app secrets are injected at runtime via .env, never baked into the image.
+# ============================================================
+name: build-images
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    # Only build on the personal mirror; skipped on the org repo.
+    if: github.repository == 'AvonS10/audityote'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { name: backend,  context: ./backend }
+          - { name: frontend, context: ./frontend }
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: docker/login-action@v3           # TODO: pin to a commit SHA to match ci.yml
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6       # TODO: pin to a commit SHA
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: |
+            ghcr.io/avons10/audityote-${{ matrix.name }}:latest
+            ghcr.io/avons10/audityote-${{ matrix.name }}:${{ github.sha }}

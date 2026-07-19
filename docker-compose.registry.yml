@@ -1,0 +1,20 @@
+# ============================================================
+# AuditYote — REGISTRY override: run from prebuilt ghcr.io images (no server-side build).
+# Layer this LAST, after the base + deploy override:
+#   docker compose -f docker-compose.yml -f docker-compose.deploy.yml -f docker-compose.registry.yml --profile app pull
+#   docker compose -f docker-compose.yml -f docker-compose.deploy.yml -f docker-compose.registry.yml --profile app up -d
+#
+# `build: !reset null` clears the base file's build context so the box ONLY ever pulls —
+# it can never silently fall back to compiling. Images come from the CI build (build-images.yml).
+# ============================================================
+services:
+  backend:
+    image: ghcr.io/avons10/audityote-backend:latest
+    build: !reset null
+    pull_policy: always
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx384m"   # cap heap — two JVMs share this 4 GB box
+  frontend:
+    image: ghcr.io/avons10/audityote-frontend:latest
+    build: !reset null
+    pull_policy: always
