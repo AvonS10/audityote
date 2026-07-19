@@ -206,7 +206,7 @@ The frontend is served at http://localhost:5173, the API at http://localhost:808
 
 Every push runs a GitHub Actions pipeline. A detect job gates the rest so the build stays quick in a monorepo. The backend job builds and runs the full test suite against a PostgreSQL service on Java 21. The frontend job installs dependencies, lints with oxlint, and builds with Vite. Two security scanners run and can fail the build: Semgrep with the default, OWASP Top Ten, and secrets rulesets, and Trivy across dependencies, secrets, and misconfiguration at high and critical severity.
 
-Both images are multi-stage and run as a non-root user. The stack runs in Docker on a DigitalOcean droplet behind the host's nginx, with TLS from Let's Encrypt and an HTTP to HTTPS redirect. Flyway applies its migrations on startup, so the schema is created and versioned without manual steps. The reverse-proxy configuration and a deployment runbook live in the `deploy/` directory.
+Both images are multi-stage and run as a non-root user. The stack runs in Docker on a Linux VPS behind a reverse proxy, with TLS from Let's Encrypt and an HTTP to HTTPS redirect. Flyway applies its migrations on startup, so the schema is created and versioned without manual steps. The reverse-proxy configuration and a deployment runbook live in the `deploy/` directory.
 
 ## Testing
 
