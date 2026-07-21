@@ -12,6 +12,17 @@ const REASON_NOTICE: Record<string, string> = {
   expired: 'Your session expired. Please sign in again.',
 }
 
+/**
+ * Throwaway logins for the public demo instance, published in the README too. Both roles are
+ * offered because the workflow only makes sense from both ends: the analyst authors and submits,
+ * the reviewer approves or returns. Seeing one without the other misses the point of the app.
+ */
+const DEMO_PASSWORD = 'AuditYoteDemo'
+const DEMO_ACCOUNTS = [
+  { role: 'Analyst', email: 'analystdemo@audityote.pasin.dev' },
+  { role: 'Reviewer', email: 'reviewerdemo@audityote.pasin.dev' },
+] as const
+
 export function BrandPanel() {
   return (
     <div
@@ -93,6 +104,13 @@ function LoginForm() {
         ? 'Enter a valid email address.'
         : null,
     pw: !pw ? 'Enter your password.' : null,
+  }
+
+  function fillDemo(demoEmail: string) {
+    setEmail(demoEmail)
+    setPw(DEMO_PASSWORD)
+    setTouched(false)
+    setServerError(null)
   }
 
   async function submit(e: React.FormEvent) {
@@ -183,6 +201,34 @@ function LoginForm() {
         New here?{' '}
         <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 600 }}>Create an account</Link>
       </p>
+
+      <div
+        style={{
+          display: 'flex', flexDirection: 'column', gap: 9, padding: '12px 13px',
+          background: 'var(--surface-inset)', border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-sm)',
+        }}
+      >
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 'var(--fs-caption)', fontWeight: 700,
+          letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)',
+        }}>
+          <Icon name="info" size={14} />Demo access
+        </span>
+        <p style={{ fontSize: 'var(--fs-body-sm)', color: 'var(--text-body)', margin: 0, lineHeight: 1.5 }}>
+          This is a public demo instance. Pick a role to fill in the form, then sign in.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {DEMO_ACCOUNTS.map((account) => (
+            <Button key={account.role} type="button" variant="secondary" size="sm" onClick={() => fillDemo(account.email)}>
+              {account.role}
+            </Button>
+          ))}
+        </div>
+        <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+          Both accounts use the password <span style={{ fontFamily: 'var(--font-mono)' }}>{DEMO_PASSWORD}</span>.
+        </p>
+      </div>
 
       <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-faint)', margin: 0, textAlign: 'center', lineHeight: 1.5 }}>
         Protected system. Unauthorized use is prohibited and monitored.
