@@ -39,6 +39,12 @@ controlmap:
     # Comma-separated company email domains allowed to self-register (new accounts default to ANALYST).
     # Empty (the default) = self-registration disabled. Set per-environment, e.g. audityote.pasin.dev.
     allowed-domains: ${SIGNUP_ALLOWED_DOMAINS:}
+  demo:
+    # Comma-separated emails of the published public demo accounts (creds printed in the README and on
+    # the sign-in screen). These are locked out of self-service password/profile changes so a visitor
+    # cannot lock other visitors out; recovery stays possible via admin password-reset. Empty (the
+    # default) locks nothing, so local/dev and CI are unaffected. Set per-environment on the public site.
+    locked-emails: ${DEMO_LOCKED_EMAILS:}
   ai:
     # AI-assisted control mapping (stretch, PLAN §4). OFF by default: with enabled=false no Claude
     # client is built and no API key is needed — the graded core runs fully without AI. When enabled,

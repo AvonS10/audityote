@@ -35,14 +35,16 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserRepository users;
     private final RegistrationService registrationService;
+    private final DemoAccountPolicy demoAccountPolicy;
     private final SecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
 
     public AuthController(AuthenticationManager authenticationManager, UserRepository users,
-                          RegistrationService registrationService) {
+                          RegistrationService registrationService, DemoAccountPolicy demoAccountPolicy) {
         this.authenticationManager = authenticationManager;
         this.users = users;
         this.registrationService = registrationService;
+        this.demoAccountPolicy = demoAccountPolicy;
     }
 
     @PostMapping("/login")
@@ -54,7 +56,7 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
         startSession(authentication, httpRequest, httpResponse);
-        return ResponseEntity.ok(UserResponse.from(currentUser(authentication.getName())));
+        return ResponseEntity.ok(toResponse(currentUser(authentication.getName())));
     }
 
     /**
@@ -69,7 +71,7 @@ public class AuthController {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(created.getEmail(), request.password()));
         startSession(authentication, httpRequest, httpResponse);
-        return ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.from(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
     /** Persist the authenticated security context into the (cookie-backed) HTTP session. */
@@ -91,7 +93,12 @@ public class AuthController {
     @GetMapping("/me")
     public UserResponse me(Authentication authentication) {
         // Endpoint requires authentication, so `authentication` is present here.
-        return UserResponse.from(currentUser(authentication.getName()));
+        return toResponse(currentUser(authentication.getName()));
+    }
+
+    /** Build the response DTO, tagging locked public demo accounts so the UI can disable self-service edits. */
+    private UserResponse toResponse(User user) {
+        return UserResponse.from(user, demoAccountPolicy.isLocked(user.getEmail()));
     }
 
     private User currentUser(String email) {

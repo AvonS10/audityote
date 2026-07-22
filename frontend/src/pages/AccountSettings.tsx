@@ -45,6 +45,10 @@ export function AccountSettings() {
   const { user, refresh } = useAuth()
   const { toast } = useToast()
 
+  // Published public demo accounts are locked out of self-service edits (enforced server-side with a
+  // 403; this only mirrors that so the controls read as disabled instead of failing on submit).
+  const locked = user?.demo === true
+
   const [name, setName] = useState(user?.name ?? '')
   const [savingName, setSavingName] = useState(false)
 
@@ -57,7 +61,7 @@ export function AccountSettings() {
   const nameDirty = name.trim() !== '' && name.trim() !== (user?.name ?? '')
 
   async function saveName() {
-    if (!nameDirty) return
+    if (!nameDirty || locked) return
     setSavingName(true)
     try {
       await updateProfile(name.trim())
@@ -71,6 +75,7 @@ export function AccountSettings() {
   }
 
   async function savePassword() {
+    if (locked) return
     setPwError(null)
     if (next.length < 8) {
       setPwError('New password must be at least 8 characters.')
@@ -102,9 +107,22 @@ export function AccountSettings() {
         <p className="text-muted" style={{ fontSize: 'var(--fs-body-sm)', margin: '4px 0 0' }}>Manage your profile and password.</p>
       </div>
 
+      {locked ? (
+        <div
+          role="status"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: 'var(--surface-inset)',
+            border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-body-sm)', color: 'var(--text-body)',
+          }}
+        >
+          <Icon name="shield" size={15} color="var(--text-muted)" />
+          This is a shared demo account. Profile and password changes are disabled so it stays available for everyone.
+        </div>
+      ) : null}
+
       <Card title="Profile" icon="settings">
         <Field label="Display name">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={120} />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={120} disabled={locked} />
         </Field>
         <ReadOnlyRow label="Email">
           <span className="font-mono text-strong">{user?.email}</span>
@@ -114,7 +132,7 @@ export function AccountSettings() {
           <span className="text-faint" style={{ fontSize: 'var(--fs-caption)' }}>Managed by your organization</span>
         </ReadOnlyRow>
         <div>
-          <Button variant="primary" disabled={!nameDirty || savingName} onClick={saveName}>
+          <Button variant="primary" disabled={!nameDirty || savingName || locked} onClick={saveName}>
             {savingName ? 'Saving…' : 'Save changes'}
           </Button>
         </div>
@@ -122,13 +140,13 @@ export function AccountSettings() {
 
       <Card title="Password" icon="shield">
         <Field label="Current password">
-          <Input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+          <Input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} disabled={locked} />
         </Field>
         <Field label="New password" hint="at least 8 characters">
-          <Input type="password" autoComplete="new-password" value={next} invalid={!!pwError} onChange={(e) => { setNext(e.target.value); setPwError(null) }} />
+          <Input type="password" autoComplete="new-password" value={next} invalid={!!pwError} onChange={(e) => { setNext(e.target.value); setPwError(null) }} disabled={locked} />
         </Field>
         <Field label="Confirm new password">
-          <Input type="password" autoComplete="new-password" value={confirm} invalid={!!pwError} onChange={(e) => { setConfirm(e.target.value); setPwError(null) }} />
+          <Input type="password" autoComplete="new-password" value={confirm} invalid={!!pwError} onChange={(e) => { setConfirm(e.target.value); setPwError(null) }} disabled={locked} />
         </Field>
         {pwError ? (
           <span role="alert" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-caption)', color: 'var(--critical-600)' }}>
@@ -136,7 +154,7 @@ export function AccountSettings() {
           </span>
         ) : null}
         <div>
-          <Button variant="primary" disabled={savingPw || !current || !next || !confirm} onClick={savePassword}>
+          <Button variant="primary" disabled={savingPw || !current || !next || !confirm || locked} onClick={savePassword}>
             {savingPw ? 'Changing…' : 'Change password'}
           </Button>
         </div>

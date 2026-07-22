@@ -18,20 +18,25 @@ public class AccountService {
 
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
+    private final DemoAccountPolicy demoAccountPolicy;
 
-    public AccountService(UserRepository users, PasswordEncoder passwordEncoder) {
+    public AccountService(UserRepository users, PasswordEncoder passwordEncoder, DemoAccountPolicy demoAccountPolicy) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
+        this.demoAccountPolicy = demoAccountPolicy;
     }
 
     public UserResponse updateProfile(String email, String name) {
         User user = currentUser(email);
+        requireNotDemo(user);
         user.setName(name.trim());
-        return UserResponse.from(users.save(user));
+        // Guard passed → not a locked demo account, so demo=false on the response.
+        return UserResponse.from(users.save(user), false);
     }
 
     public void changePassword(String email, String currentPassword, String newPassword) {
         User user = currentUser(email);
+        requireNotDemo(user);
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new BadRequestException("Current password is incorrect.");
         }
@@ -40,6 +45,17 @@ public class AccountService {
         }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         users.save(user);
+    }
+
+    /**
+     * Blocks self-service edits on a published public demo account so a visitor cannot change its
+     * shared credentials (or deface its name) and lock other visitors out. Server-side, not a hidden
+     * UI control. Admin password-reset is unaffected and remains the recovery path.
+     */
+    private void requireNotDemo(User user) {
+        if (demoAccountPolicy.isLocked(user.getEmail())) {
+            throw new ForbiddenException("This is a shared demo account; profile and password changes are disabled.");
+        }
     }
 
     private User currentUser(String email) {

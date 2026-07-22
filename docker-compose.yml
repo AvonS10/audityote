@@ -53,6 +53,8 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
       # Self-registration: company email domains allowed to sign up (empty = registration disabled).
       SIGNUP_ALLOWED_DOMAINS: ${SIGNUP_ALLOWED_DOMAINS:-}
+      # Published demo accounts locked out of self-service password/profile changes (empty = none locked).
+      DEMO_LOCKED_EMAILS: ${DEMO_LOCKED_EMAILS:-}
       # AI-assisted control mapping (stretch — off by default)
       AI_SUGGESTIONS_ENABLED: ${AI_SUGGESTIONS_ENABLED:-false}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}

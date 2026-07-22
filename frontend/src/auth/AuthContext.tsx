@@ -7,6 +7,8 @@ export interface User {
   name: string
   /** Canonical role name from the API: 'ANALYST' | 'REVIEWER'. */
   role: string
+  /** True for a published public demo account: self-service profile/password changes are disabled server-side. */
+  demo?: boolean
 }
 
 type Status = 'loading' | 'authenticated' | 'anonymous'
